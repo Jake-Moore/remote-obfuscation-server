@@ -20,5 +20,5 @@ RUN npm install
 # Copy the rest of your application code
 COPY . .
 
-# Use the node start script
-CMD ["npm", "run", "start"]
+# Use the node deploy script
+CMD ["npm", "run", "deploy"]
