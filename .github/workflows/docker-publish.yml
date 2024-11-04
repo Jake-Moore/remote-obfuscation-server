@@ -5,8 +5,6 @@ on:
     - cron: '20 14 * * *'
   push:
     branches: [ "main" ]
-    tags:
-      - 'docker-v*.*.*'  # Triggers only on tags like docker-v1.0.0
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -14,7 +12,6 @@ env:
 
 jobs:
   build:
-    if: startsWith(github.ref, 'refs/tags/docker-v')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -26,35 +23,30 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-        with:
-          # Fetch all history for all branches and tags
-          # So that `git describe` can find the latest tag
-          fetch-depth: 0
+
+      - name: Extract Release Version
+        id: extract_version
+        run: |
+          VERSION=$(cat ./ros-express-backend/VERSION)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Show Release Version
+        run: echo "Release Version is ${{ steps.extract_version.outputs.version }}"
 
       # Login against a Docker registry except on PR
       # https://github.com/docker/login-action
       - name: Log into registry ${{ env.REGISTRY }}
-        if: github.event_name != 'pull_request'
+        if: endsWith(${{ steps.extract_version.outputs.version }}, "-SNAPSHOT") == false && github.event_name != 'pull_request'
         uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract Release Version from Tag
-        id: extract_version
-        run: |
-          git fetch --tags                            # Ensure all tags are fetched
-          version=$(git describe --tags --abbrev=0)   # Get the latest tag
-          version=${version#docker-v}                 # Strips 'docker-v' prefix
-          echo "version=$version" >> $GITHUB_OUTPUT
-
-      - name: Show Release Version
-        run: echo "Release Version is ${{ steps.extract_version.outputs.version }}"
-
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
       - name: Build and push Docker image
+        if: endsWith(${{ steps.extract_version.outputs.version }}, "-SNAPSHOT") == false
         id: build-and-push
         uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
         with:
