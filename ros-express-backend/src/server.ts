@@ -53,7 +53,7 @@ if (requiredOrgs.length === 0) {
     console.log(`Authorized organizations: ${requiredOrgs.join(', ')}`);
 }
 
-// Check if we want to bind in IPv4 only mode
+// Check if we want to bind in IPv4-only mode
 const ipv4Only: boolean = process.env.ROS_IPV4_ONLY === 'true';
 if (ipv4Only) {
     // Start the server in HTTP mode (assume reverse proxy is handling SSL)
