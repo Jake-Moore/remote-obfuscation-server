@@ -20,6 +20,11 @@
 - `ROS_LOG_STORAGE`
   - default `/var/log/ros`
   - Where obfuscation logs should be stored
+- `ROS_REVERSE_PROXY`
+  - default 'false'
+  - Set to true when ROS is behind a reverse proxy, to resolve client ips from the proxy
+  - More specifically, this enables the `trust proxy` flag in Express, relying on the `X-Forwarded-` headers to resolve ips
+    - See https://expressjs.com/en/guide/behind-proxies.html for more details
 
 ### Sample docker-compose.yml
 ```yml

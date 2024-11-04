@@ -15,6 +15,14 @@ import colors from 'colors';
 
 const app = express();
 
+// Configure Proxy Trusting for Reverse Proxies
+// (so that ips resolve properly)
+const reverseProxied: boolean = process.env.ROS_REVERSE_PROXY === 'true';
+if (reverseProxied) {
+    console.log(colors.gray('Enabling Reverse Proxy Support - Trusting Proxy'));
+    app.set('trust proxy', true);
+}
+
 // Middleware (Body Parser)
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
