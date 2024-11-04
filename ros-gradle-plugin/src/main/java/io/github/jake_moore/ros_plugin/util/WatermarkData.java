@@ -1,4 +1,4 @@
-package com.kamikazejam.gradle.plugin.util;
+package io.github.jake_moore.ros_plugin.util;
 
 import lombok.Data;
 import lombok.RequiredArgsConstructor;

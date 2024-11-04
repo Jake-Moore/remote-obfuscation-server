@@ -1,8 +1,8 @@
-package com.kamikazejam.gradle.plugin;
+package io.github.jake_moore.ros_plugin;
 
-import com.kamikazejam.gradle.plugin.tasks.ObfuscateJarTask;
-import com.kamikazejam.gradle.plugin.tasks.StackTraceTask;
-import com.kamikazejam.gradle.plugin.tasks.WatermarkTask;
+import io.github.jake_moore.ros_plugin.tasks.ObfuscateJarTask;
+import io.github.jake_moore.ros_plugin.tasks.StackTraceTask;
+import io.github.jake_moore.ros_plugin.tasks.WatermarkTask;
 import okhttp3.OkHttpClient;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;

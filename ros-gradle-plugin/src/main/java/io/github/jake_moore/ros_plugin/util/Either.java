@@ -1,11 +1,15 @@
-package com.kamikazejam.gradle.plugin.util;
+package io.github.jake_moore.ros_plugin.util;
 
 import java.util.Optional;
 
 /**
  * An object that represents either an (L) type or an (R) type. Never both values, never neither values.
+ * @param <L> the left type
+ * @param <R> the right type
  */
 public abstract class Either<L, R> {
+    private Either() {}
+
     /**
      * Gets the left value of this either instance.
      *
@@ -35,6 +39,11 @@ public abstract class Either<L, R> {
      */
     public abstract Object get();
 
+    /**
+     * Represents the left value of an {@link Either} instance.
+     * @param <L> the left type
+     * @param <R> the right type
+     */
     public static class Left<L, R> extends Either<L, R> {
         private final L left;
         public Left(L left) {
@@ -57,6 +66,11 @@ public abstract class Either<L, R> {
         }
     }
 
+    /**
+     * Represents the right value of an {@link Either} instance.
+     * @param <L> the left type
+     * @param <R> the right type
+     */
     public static class Right<L, R> extends Either<L, R> {
         private final R right;
         public Right(R right) {

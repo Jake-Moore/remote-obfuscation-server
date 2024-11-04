@@ -1,9 +1,9 @@
-package com.kamikazejam.gradle.plugin.tasks;
+package io.github.jake_moore.ros_plugin.tasks;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.kamikazejam.gradle.plugin.ROSGradleConfig;
-import com.kamikazejam.gradle.plugin.util.WatermarkData;
+import io.github.jake_moore.ros_plugin.ROSGradleConfig;
+import io.github.jake_moore.ros_plugin.util.WatermarkData;
 import lombok.Setter;
 import okhttp3.*;
 import org.gradle.api.DefaultTask;
@@ -16,7 +16,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
-import static com.kamikazejam.gradle.plugin.ROSGradlePlugin.client;
+import static io.github.jake_moore.ros_plugin.ROSGradlePlugin.client;
 
 @SuppressWarnings("unused")
 public class WatermarkTask extends DefaultTask {

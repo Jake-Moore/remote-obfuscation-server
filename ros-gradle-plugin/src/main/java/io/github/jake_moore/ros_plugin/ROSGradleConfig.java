@@ -1,4 +1,4 @@
-package com.kamikazejam.gradle.plugin;
+package io.github.jake_moore.ros_plugin;
 
 import org.gradle.api.provider.Property;
 import org.jetbrains.annotations.NotNull;

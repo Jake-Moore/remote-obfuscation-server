@@ -1,4 +1,4 @@
-package com.kamikazejam.gradle.plugin.tasks;
+package io.github.jake_moore.ros_plugin.tasks;
 
 import java.io.File;
 import java.io.IOException;
@@ -9,8 +9,8 @@ import org.jetbrains.annotations.NotNull;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.kamikazejam.gradle.plugin.ROSGradleConfig;
-import static com.kamikazejam.gradle.plugin.ROSGradlePlugin.client;
+import io.github.jake_moore.ros_plugin.ROSGradleConfig;
+import static io.github.jake_moore.ros_plugin.ROSGradlePlugin.client;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
