@@ -6,7 +6,7 @@
   - The git organizations a user must be a part of to access the obfuscation server
   - Use a comma-delimited list of org names, i.e. `ROS_REQUIRED_ORGS=MyOrg1,MyOrg2`
 - `ROS_OBFUSCATOR_TYPE`
-  - The obfuscator name you are planning to use. 
+  - The obfuscator name you are planning to use
   - Options: `ALLATORI`
     - feel free to make a PR with more implementations!
 
