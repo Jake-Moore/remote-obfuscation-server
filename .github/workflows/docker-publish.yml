@@ -39,21 +39,21 @@ jobs:
       - name: Extract Release Version from Tag
         id: extract_version
         run: |
-          version=${GITHUB_REF##*/}
+          version=${GITHUB_REF_NAME}
           version=${version#docker-v}
           echo "version=$version" >> $GITHUB_OUTPUT
 
       - name: Show Release Version
         run: echo "Version is ${{ steps.extract_version.outputs.version }}"
 
-      # Build and push Docker image with Buildx (don't push on PR)
-      # https://github.com/docker/build-push-action
-      - name: Build and push Docker image
-        id: build-and-push
-        uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
-        with:
-          context: ./ros-express-backend
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: |
-            ghcr.io/jake-moore/remote-obfuscation-server:${{ steps.extract_version.outputs.version }}
-            ghcr.io/jake-moore/remote-obfuscation-server:latest
+      # # Build and push Docker image with Buildx (don't push on PR)
+      # # https://github.com/docker/build-push-action
+      # - name: Build and push Docker image
+      #   id: build-and-push
+      #   uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
+      #   with:
+      #     context: ./ros-express-backend
+      #     push: ${{ github.event_name != 'pull_request' }}
+      #     tags: |
+      #       ghcr.io/jake-moore/remote-obfuscation-server:${{ steps.extract_version.outputs.version }}
+      #       ghcr.io/jake-moore/remote-obfuscation-server:latest
