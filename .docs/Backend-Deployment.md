@@ -42,6 +42,7 @@ services:
       ROS_REQUIRED_ORGS: '' # CHANGEME
       # ROS_REQUIRED_ORGS: 'MyOrganizationName' # Example of one org
       # ROS_REQUIRED_ORGS: 'MyOrganizationName,Google' # Example of multiple orgs
+      # ROS_REVERSE_PROXY: true # If deployed behind a reverse proxy (!! SEE ENV NOTES ABOVE !!)
 
 ```
 
