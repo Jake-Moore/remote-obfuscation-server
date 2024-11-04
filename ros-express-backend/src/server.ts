@@ -57,7 +57,7 @@ const ipv4Only: boolean = process.env.ROS_IPV4_ONLY === 'true';
 if (ipv4Only) {
     // Start the server in HTTP mode (assume reverse proxy is handling SSL)
     console.log(colors.gray('IPv4 Only Mode Enabled'));
-    app.listen(port, "127.0.0.1", () => {
+    app.listen(port, "0.0.0.0", () => {
         console.log(colors.green(`Server is running (http) on port ${port}`));
     });
 }else {
