@@ -25,6 +25,9 @@
   - Set to true when ROS is behind a reverse proxy, to resolve client ips from the proxy
   - More specifically, this enables the `trust proxy` flag in Express, relying on the `X-Forwarded-` headers to resolve ips
     - See https://expressjs.com/en/guide/behind-proxies.html for more details
+- `ROS_IPV4_ONLY`
+  - default 'false'
+  - Set to true to use IPV4 only
 
 ### Sample docker-compose.yml
 ```yml
@@ -43,6 +46,7 @@ services:
       # ROS_REQUIRED_ORGS: 'MyOrganizationName' # Example of one org
       # ROS_REQUIRED_ORGS: 'MyOrganizationName,Google' # Example of multiple orgs
       # ROS_REVERSE_PROXY: true # If deployed behind a reverse proxy (!! SEE ENV NOTES ABOVE !!)
+      # ROS_IPV4_ONLY: true # If wanting to use ipv4 only
 
 ```
 

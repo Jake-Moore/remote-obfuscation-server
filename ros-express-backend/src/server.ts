@@ -40,7 +40,7 @@ app.use(notFound);
 app.use(errorHandler);
 
 // Pull Port from Environment variables
-const port = process.env.ROS_PORT || 8000;
+const port: number = parseInt(process.env.ROS_PORT || '3000');
 
 // Check authorized orgs for a helpful warning if not set
 const requiredOrgs = getRequiredGitOrgs();
@@ -53,7 +53,16 @@ if (requiredOrgs.length === 0) {
     console.log(`Authorized organizations: ${requiredOrgs.join(', ')}`);
 }
 
-// Start the server in HTTP mode (assume reverse proxy is handling SSL)
-app.listen(port, () => {
-    console.log(colors.green(`Server is running (http) on port ${port}`));
-});
+const ipv4Only: boolean = process.env.ROS_IPV4_ONLY === 'true';
+if (ipv4Only) {
+    // Start the server in HTTP mode (assume reverse proxy is handling SSL)
+    console.log(colors.gray('IPv4 Only Mode Enabled'));
+    app.listen(port, "127.0.0.1", () => {
+        console.log(colors.green(`Server is running (http) on port ${port}`));
+    });
+}else {
+    // Start the server in HTTP mode (assume reverse proxy is handling SSL)
+    app.listen(port, () => {
+        console.log(colors.green(`Server is running (http) on port ${port}`));
+    });
+}
