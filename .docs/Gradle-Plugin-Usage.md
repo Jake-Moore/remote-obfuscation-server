@@ -10,4 +10,13 @@ The gradle plugin for this project aims to assist in your obfuscation needs, inc
 WIP - pending gradle plugin publication
 
 ### Gradle Task - `rosObfuscateJar`
-The ros gradle plugin loads 
+WIP DOCUMENTATION
+(task is self-documenting, run it to see required args)
+
+### Gradle Task - `rosGetWatermark`
+WIP DOCUMENTATION
+(task is self-documenting, run it to see required args)
+
+### Gradle Task - `rosGetStackTrace`
+WIP DOCUMENTATION
+(task is self-documenting, run it to see required args)
