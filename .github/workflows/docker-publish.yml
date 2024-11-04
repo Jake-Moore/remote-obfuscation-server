@@ -26,7 +26,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Fetch all history for all branches and tags
+          # Fetch all history for all branches and tags
+          # So that `git describe` can find the latest tag
+          fetch-depth: 0
 
       # Login against a Docker registry except on PR
       # https://github.com/docker/login-action
@@ -47,16 +49,16 @@ jobs:
           echo "version=$version" >> $GITHUB_OUTPUT
 
       - name: Show Release Version
-        run: echo "Version is ${{ steps.extract_version.outputs.version }}"
+        run: echo "Release Version is ${{ steps.extract_version.outputs.version }}"
 
-      # # Build and push Docker image with Buildx (don't push on PR)
-      # # https://github.com/docker/build-push-action
-      # - name: Build and push Docker image
-      #   id: build-and-push
-      #   uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
-      #   with:
-      #     context: ./ros-express-backend
-      #     push: ${{ github.event_name != 'pull_request' }}
-      #     tags: |
-      #       ghcr.io/jake-moore/remote-obfuscation-server:${{ steps.extract_version.outputs.version }}
-      #       ghcr.io/jake-moore/remote-obfuscation-server:latest
+      # Build and push Docker image with Buildx (don't push on PR)
+      # https://github.com/docker/build-push-action
+      - name: Build and push Docker image
+        id: build-and-push
+        uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
+        with:
+          context: ./ros-express-backend
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ghcr.io/jake-moore/remote-obfuscation-server:${{ steps.extract_version.outputs.version }}
+            ghcr.io/jake-moore/remote-obfuscation-server:latest
