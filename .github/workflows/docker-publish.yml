@@ -8,6 +8,10 @@ on:
     tags:
       - 'docker-v*.*.*'  # Triggers only on tags like docker-v1.0.0
 
+env:
+  # Use docker.io for Docker Hub if empty
+  REGISTRY: ghcr.io
+
 jobs:
   build:
     runs-on: ubuntu-latest
