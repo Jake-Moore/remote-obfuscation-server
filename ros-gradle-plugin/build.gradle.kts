@@ -4,7 +4,7 @@ plugins {
     id("com.gradleup.shadow") version "8.3.5"
 }
 
-group = "io.github.jake_moore"
+group = "io.github.jake-moore"
 version = "1.0.0"
 
 repositories {
@@ -26,7 +26,7 @@ gradlePlugin {
     vcsUrl.set("https://github.com/Jake-Moore/remote-obfuscation-server")
     plugins {
         create("ros_gradle_plugin") {
-            id = "io.github.jake_moore.ros_gradle_plugin"
+            id = "io.github.jake-moore.ros-gradle-plugin"
             implementationClass = "io.github.jake_moore.ros_plugin.ROSGradlePlugin"
             displayName = "ROS Gradle Plugin"
             description = "A Gradle plugin to link with Remote Obfuscation Server. (see GitHub)"

@@ -1,2 +1,2 @@
-rootProject.name = "ros_gradle_plugin"
+rootProject.name = "ros-gradle-plugin"
 
