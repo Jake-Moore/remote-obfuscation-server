@@ -39,8 +39,9 @@ jobs:
       - name: Extract Release Version from Tag
         id: extract_version
         run: |
-          version=${GITHUB_REF_NAME}
-          version=${version#docker-v}
+          git fetch --tags                            # Ensure all tags are fetched
+          version=$(git describe --tags --abbrev=0)   # Get the latest tag
+          version=${version#docker-v}                 # Strips 'docker-v' prefix
           echo "version=$version" >> $GITHUB_OUTPUT
 
       - name: Show Release Version
