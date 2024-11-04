@@ -5,6 +5,8 @@ on:
     - cron: '20 14 * * *'
   push:
     branches: [ "main" ]
+    tags:
+      - 'docker-v*.*.*'  # Triggers only on tags like docker-v1.0.0
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -14,7 +16,7 @@ env:
 
 jobs:
   build:
-
+    if: startsWith(github.ref, 'refs/tags/docker-v') && github.ref_name == 'main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -37,6 +39,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Extract Release Version from Tag
+        id: extract_version
+        run: |
+          version=${GITHUB_REF##*/}
+          version=${version#docker-v}
+          echo "version=$version" >> $GITHUB_OUTPUT
+
+      - name: Show Release Version
+        run: echo "Version is ${{ steps.extract_version.outputs.version }}"
+
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
       - name: Build and push Docker image
@@ -46,7 +58,5 @@ jobs:
           context: ./ros-express-backend
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
-            ghcr.io/jake-moore/remote-obfuscation-server
-          #labels: ${{ steps.meta.outputs.labels }}
-          #cache-from: type=gha
-          #cache-to: type=gha,mode=max
+            ghcr.io/${{ env.IMAGE_NAME }}:${{ steps.extract_version.outputs.version }}
+            ghcr.io/${{ env.IMAGE_NAME }}:latest
