@@ -1,0 +1,37 @@
+{
+  "name": "express-backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.ts",
+  "type": "module",
+  "scripts": {
+    "start": "rmdir /s /q dist && npx tsc && node --env-file=.env dist/server.js",
+    "dev": "nodemon --watch . --exec \"node --env-file=.env --loader ts-node/esm\" src/server.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "axios": "^1.7.7",
+    "colors": "^1.4.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "express-backend": "file:",
+    "fast-xml-parser": "^4.5.0",
+    "jszip": "^3.10.1",
+    "multer": "^1.4.5-lts.1"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.6",
+    "@types/express": "^5.0.0",
+    "@types/multer": "^1.4.12",
+    "@types/node": "^22.8.7",
+    "nodemon": "^3.1.7",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
+  },
+  "resolutions": {
+    "@types/mime": "3.0.4"
+  }
+}
