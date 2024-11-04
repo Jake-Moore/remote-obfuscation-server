@@ -45,10 +45,10 @@ const port: number = parseInt(process.env.ROS_PORT || '3000');
 // Check authorized orgs for a helpful warning if not set
 const requiredOrgs = getRequiredGitOrgs();
 if (requiredOrgs.length === 0) {
-    console.log(colors.yellow('------------------------------'));
+    console.log(colors.yellow('------------------------------------------------------------'));
     console.log(colors.yellow('Warning: No required organizations set. All requests will be denied.'));
     console.log(colors.yellow('Please set the ROS_REQUIRED_ORGS environment variable to a comma-delimited list of required organization names.'));
-    console.log(colors.yellow('------------------------------'));
+    console.log(colors.yellow('------------------------------------------------------------'));
 } else {
     console.log(`Authorized organizations: ${requiredOrgs.join(', ')}`);
 }
