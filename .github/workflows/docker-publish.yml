@@ -8,12 +8,6 @@ on:
     tags:
       - 'docker-v*.*.*'  # Triggers only on tags like docker-v1.0.0
 
-env:
-  # Use docker.io for Docker Hub if empty
-  REGISTRY: ghcr.io
-  # github.repository as <account>/<repo>
-  IMAGE_NAME: ${{ github.repository }}
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -57,5 +51,5 @@ jobs:
           context: ./ros-express-backend
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
-            ghcr.io/${{ env.IMAGE_NAME }}:${{ steps.extract_version.outputs.version }}
-            ghcr.io/${{ env.IMAGE_NAME }}:latest
+            ghcr.io/jake-moore/remote-obfuscation-server:${{ steps.extract_version.outputs.version }}
+            ghcr.io/jake-moore/remote-obfuscation-server:latest
