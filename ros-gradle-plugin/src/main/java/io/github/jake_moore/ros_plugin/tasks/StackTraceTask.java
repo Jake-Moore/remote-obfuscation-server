@@ -143,10 +143,11 @@ public class StackTraceTask extends DefaultTask {
 
         // Execute the request
         try (Response response = client.newCall(request).execute()) {
+            String responseBody = response.body().string();
             if (!response.isSuccessful()) {
-                throw new IOException("Unexpected code " + response);
+                throw new RuntimeException("Unexpected code (" + response.code() + "): " + responseBody);
             }
-            JsonObject jsonObject = JsonParser.parseString(response.body().string()).getAsJsonObject();
+            JsonObject jsonObject = JsonParser.parseString(responseBody).getAsJsonObject();
             String outputBase64 = jsonObject.get("output_trace_base64").getAsString();
             String outputTrace = new String(Base64.getDecoder().decode(outputBase64));
 

@@ -59,10 +59,10 @@ public class ObfuscateJarTask {
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
-            if (!response.isSuccessful()) {
-                throw new RuntimeException("Unexpected code " + response);
-            }
             String responseBody = response.body().string();
+            if (!response.isSuccessful()) {
+                throw new RuntimeException("Unexpected code (" + response.code() + "): " + responseBody);
+            }
 
             // Parse the JSON response
             JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
@@ -74,7 +74,7 @@ public class ObfuscateJarTask {
             System.out.println("Obfuscator output: " + obfuscatorOutput);
 
             // Save the base64-encoded JAR file in place of the original JAR
-            jarFile.delete();
+            boolean ignored = jarFile.delete();
 
             byte[] outputFileBytes = Base64.getDecoder().decode(jsonResponse.get("output_file").getAsString());
             Files.write(jarFile.toPath(), outputFileBytes);

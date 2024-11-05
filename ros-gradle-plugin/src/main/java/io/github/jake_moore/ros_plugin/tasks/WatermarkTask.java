@@ -80,8 +80,11 @@ public class WatermarkTask extends DefaultTask {
 
         // Execute the request
         try (Response response = client.newCall(request).execute()) {
-            if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
-            JsonObject jsonObject = JsonParser.parseString(response.body().string()).getAsJsonObject();
+            String responseBody = response.body().string();
+            if (!response.isSuccessful()) {
+                throw new RuntimeException("Unexpected code (" + response.code() + "): " + responseBody);
+            }
+            JsonObject jsonObject = JsonParser.parseString(responseBody).getAsJsonObject();
             String requestId = jsonObject.get("request_id").getAsString();
             String requestUser = jsonObject.get("request_user").getAsString();
             return new WatermarkData(requestId, requestUser);
