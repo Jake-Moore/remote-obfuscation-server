@@ -38,6 +38,13 @@ router.post(
         const obfuscator: Obfuscator = getObfuscator();
 
         try {
+            // Safety Check: ensure the jar is not already watermarked/obfuscated
+            if (await obfuscator.isJarWatermarked(req, res, next, jarFile.path)) {
+                const err = new Error('The provided jar file is already obfuscated.');
+                (err as any).status = 400;
+                return next(err);
+            }
+
             // Attempt obfuscation on the provided files
             return await obfuscator.obfuscate(req, res, next, jarFile, configFile);
         } catch (error) {

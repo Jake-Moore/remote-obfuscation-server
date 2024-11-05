@@ -134,15 +134,26 @@ export class AllatoriObfuscator extends Obfuscator {
         fs.mkdirSync(uploadsDir, { recursive: true });
         fs.writeFileSync(tracePath, decodedStackTrace);
 
-        await this.runAllatoriTrace(obfuscatorPath, logPath, tracePath, tracePathOut);
+        try {
+            await this.runAllatoriTrace(obfuscatorPath, logPath, tracePath, tracePathOut);
 
-        const traceOutStr = fs.readFileSync(tracePathOut, 'utf-8');
-        const traceOutBase64 = Buffer.from(traceOutStr).toString('base64');
-        res.status(200).json({
-            message: 'Stack trace translated successfully',
-            request_id: requestID,
-            output_trace_base64: traceOutBase64,
-        });
+            const traceOutStr = fs.readFileSync(tracePathOut, 'utf-8');
+            const traceOutBase64 = Buffer.from(traceOutStr).toString('base64');
+            res.status(200).json({
+                message: 'Stack trace translated successfully',
+                request_id: requestID,
+                output_trace_base64: traceOutBase64,
+            });
+        } catch (error) {
+            // Pass errors to the error handler middleware
+            console.error(colors.red(`Error calling stacktrace: ${error}`));
+            const err = new Error('Error calling stacktrace. Please check the server logs.');
+            (err as any).status = 500;
+            return next(err);
+        } finally {
+            deleteTemp({ path: tracePath });
+            deleteTemp({ path: tracePathOut });
+        }
     }
 
     private runAllatoriTrace(allatoriPath: string, logPath: string, tracePath: string, tracePathOut: string): Promise<string> {
@@ -179,28 +190,24 @@ export class AllatoriObfuscator extends Obfuscator {
         }
     }
 
+    /**
+     * @throws {Error} If watermark file is not found, or file fails to parse.
+     */
     async extractWatermark(
         _req: Request,
         _res: Response,
         next: NextFunction,
         jarPath: string
     ): Promise<any> {
-        try {
-            const zip = new AdmZip(jarPath);
-            const obfFile = zip.getEntry(this.watermarkFileName);
+        // We don't catch any errors here, we want to pass them to the calling function
+        const zip = new AdmZip(jarPath);
+        const obfFile = zip.getEntry(this.watermarkFileName);
 
-            if (!obfFile) {
-                const err = new Error("Failed to find watermark file in JAR.");
-                (err as any).status = 404;
-                return next(err);
-            }
-
-            const obfData = obfFile.getData().toString('utf8');
-            return JSON.parse(obfData);
-        } catch (error) {
-            const err = new Error(`Failed to extract watermark from JAR file: ${error}`);
-            (err as any).status = 500;
-            return next(err);
+        if (!obfFile) {
+            throw new Error("Failed to find watermark file in JAR.");
         }
+
+        const obfData = obfFile.getData().toString('utf8');
+        return JSON.parse(obfData);
     }
 }

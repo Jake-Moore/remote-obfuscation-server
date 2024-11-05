@@ -51,12 +51,8 @@ export async function updateObfConfig(
         "@_value": logPath
     });
 
-    // Set the watermarks
-    xml.config.watermark = {
-        "@_key": "remote-obfuscation-server-request",
-        // Format - 'requestID:userEmail'
-        "@_value": `${requestID}:${userEmail}`,
-    };
+    // Remove any watermark keys (breaks the obfuscation process at times)
+    delete xml.config.watermark;
 
     // Set the random seed to the requestID
     xml.config.property.push({

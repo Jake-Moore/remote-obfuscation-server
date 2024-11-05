@@ -40,4 +40,19 @@ export class Obfuscator {
   ): Promise<string> {
     throw new Error("Method 'extractWatermark()' is not implemented.");
   }
+
+  async isJarWatermarked(
+    _req: Request,
+    _res: Response,
+    _next: NextFunction,
+    _jarPath: string
+  ): Promise<boolean> {
+    try {
+      await this.extractWatermark(_req, _res, _next, _jarPath);
+      // If extractWatermark returned, then we have a watermark
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
 }
