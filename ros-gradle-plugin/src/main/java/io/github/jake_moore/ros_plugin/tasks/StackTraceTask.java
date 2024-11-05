@@ -25,62 +25,59 @@ import static io.github.jake_moore.ros_plugin.ROSGradlePlugin.client;
 
 @SuppressWarnings("unused")
 public class StackTraceTask extends DefaultTask {
+    private static final String JAR_OPTION_NAME = "jar";
+    private static final String REQUEST_ID_OPTION_NAME = "requestId";
+    private static final String STACK_TRACE_OPTION_NAME = "trace";
+    private static final String OUTPUT_OPTION_NAME = "output";
+
     @Setter
     private @Nullable ROSGradleConfig config = null;
     private @Nullable Either<File, String> either; // Either a File (obfuscated jar) or a String (requestID)
     private @Nullable String stackTracePath = null;
     private @Nullable String outputFilePath = null;
 
-    @Option(option = "requestId", description = "The request ID of the obfuscated jar that produced the stack trace.")
+    @Option(option = REQUEST_ID_OPTION_NAME, description = "The request ID of the obfuscated jar that produced the stack trace.")
     public void setRequestId(String requestId) {
         if (this.either != null) {
-            throw new IllegalArgumentException("Cannot specify both --requestId and --jar in the task invocation.");
+            throw new RuntimeException("Cannot specify both --" + REQUEST_ID_OPTION_NAME + " and --" + JAR_OPTION_NAME + " in the task invocation.");
         }
         if (requestId == null) {
-            throw new IllegalArgumentException("Please specify the request ID using --requestId=<id> in the task invocation.");
+            throw new RuntimeException("Please specify the request ID using --" + REQUEST_ID_OPTION_NAME + "=<id> in the task invocation.");
         }
         this.either = Either.right(requestId);
     }
 
-    @Option(option = "jar", description = "The path to the obfuscated jar file that produced the stack trace.")
+    @Option(option = JAR_OPTION_NAME, description = "The path to the obfuscated jar file that produced the stack trace.")
     public void setJarFilePath(String jarFilePath) {
         if (this.either != null) {
-            throw new IllegalArgumentException("Cannot specify both --requestId and --jar in the task invocation.");
+            throw new RuntimeException("Cannot specify both --" + REQUEST_ID_OPTION_NAME + " and --" + JAR_OPTION_NAME + " in the task invocation.");
         }
         if (jarFilePath == null) {
-            throw new IllegalArgumentException("Please specify the jar file path using --jar=<path> in the task invocation.");
+            throw new RuntimeException("Please specify the jar file path using --" + JAR_OPTION_NAME + "=<path> in the task invocation.");
         }
         this.either = Either.left(new File(jarFilePath));
     }
 
-    @Option(option = "trace", description = "The path to the stack trace file.")
+    @Option(option = STACK_TRACE_OPTION_NAME, description = "The path to the stack trace file.")
     public void setStackTracePath(@Nullable String stackTracePath) {
         this.stackTracePath = stackTracePath;
     }
 
-    @Option(option = "output", description = "The optional file path to the write the translated stacktrace to.")
+    @Option(option = OUTPUT_OPTION_NAME, description = "The optional file path to the write the translated stacktrace to.")
     public void setOutputFilePath(@Nullable String outputFilePath) {
         this.outputFilePath = outputFilePath;
     }
 
     @TaskAction
     public void readWatermark() {
-        try {
-            readWatermarkI();
-        }catch (Throwable t) {
-            t.printStackTrace();
-        }
-    }
-
-    private void readWatermarkI() throws Throwable {
         if (either == null) {
-            throw new IllegalArgumentException("Please specify either --requestId or --jar in the task invocation.");
+            throw new RuntimeException("Please specify either --" + REQUEST_ID_OPTION_NAME + " or --" + JAR_OPTION_NAME + " in the task invocation.");
         }
         if (config == null) {
-            throw new IllegalArgumentException("Please config ros config (apiUrl) in the build file.");
+            throw new RuntimeException("Please config ros config (apiUrl) in the build file.");
         }
         if (stackTracePath == null) {
-            throw new IllegalArgumentException("Please specify the stack trace file path using --stackTrace=<path> in the task invocation.");
+            throw new RuntimeException("Please specify the stack trace file path using --" + STACK_TRACE_OPTION_NAME + "=<path> in the task invocation.");
         }
 
         // Get auth token from environment variable
@@ -106,13 +103,17 @@ public class StackTraceTask extends DefaultTask {
         // Validate stack trace path provided
         File stackTraceFile = new File(stackTracePath);
         if (!stackTraceFile.exists()) {
-            throw new IllegalArgumentException("The specified stack trace file does not exist.");
+            throw new RuntimeException("The specified stack trace file does not exist.");
         }
         if (stackTraceFile.isDirectory()) {
-            throw new IllegalArgumentException("The specified stack trace file path is a directory, not a file.");
+            throw new RuntimeException("The specified stack trace file path is a directory, not a file.");
         }
 
-        translateStackTrace(config, stackTraceFile, requestId, authToken);
+        try {
+            translateStackTrace(config, stackTraceFile, requestId, authToken);
+        }catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void translateStackTrace(ROSGradleConfig config, File stackTraceFile, String requestId, String token) throws IOException {

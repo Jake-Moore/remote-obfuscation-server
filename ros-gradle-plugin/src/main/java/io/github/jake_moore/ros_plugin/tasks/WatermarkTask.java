@@ -32,10 +32,10 @@ public class WatermarkTask extends DefaultTask {
     @TaskAction
     public void readWatermark() {
         if (jarFilePath == null) {
-            throw new IllegalArgumentException("Please specify the jar file path using --jar=<path> in the task invocation.");
+            throw new RuntimeException("Please specify the jar file path using --jar=<path> in the task invocation.");
         }
         if (config == null) {
-            throw new IllegalArgumentException("Please config ros config (apiUrl) in the build file.");
+            throw new RuntimeException("Please config ros config (apiUrl) in the build file.");
         }
 
         try {
@@ -44,7 +44,8 @@ public class WatermarkTask extends DefaultTask {
             System.out.println("\tRequest ID: " + watermark.getRequestId());
             System.out.println("\tRequest User: " + watermark.getRequestUser());
         } catch (IOException e) {
-            e.printStackTrace();
+            // Throw a RuntimeException so that gradle knows this task failed, and simplifies the trace output
+            throw new RuntimeException(e);
         }
     }
 
@@ -57,10 +58,10 @@ public class WatermarkTask extends DefaultTask {
         }
 
         if (!file.exists()) {
-            throw new IllegalArgumentException("The specified jar file does not exist.");
+            throw new RuntimeException("The specified jar file does not exist.");
         }
         if (file.isDirectory()) {
-            throw new IllegalArgumentException("The specified jar file path is a directory, not a file.");
+            throw new RuntimeException("The specified jar file path is a directory, not a file.");
         }
 
         // Create multipart request body
