@@ -10,7 +10,7 @@ import obfuscateRoute from './routes/obfuscateRoute.js';
 import watermarkRoute from './routes/watermarkRoute.js';
 import stacktraceRoute from './routes/stacktraceRoute.js';
 // Services
-import { getRequiredGitOrgs } from './services/envService.js';
+import { getRequiredGitOrgs, getObfuscatorType } from './services/envService.js';
 import colors from 'colors';
 
 const app = express();
@@ -52,6 +52,9 @@ if (requiredOrgs.length === 0) {
 } else {
     console.log(`Authorized organizations: ${requiredOrgs.join(', ')}`);
 }
+
+// Validate all required environment variables are set
+getObfuscatorType();
 
 // Check if we want to bind in IPv4-only mode
 const ipv4Only: boolean = process.env.ROS_IPV4_ONLY === 'true';
