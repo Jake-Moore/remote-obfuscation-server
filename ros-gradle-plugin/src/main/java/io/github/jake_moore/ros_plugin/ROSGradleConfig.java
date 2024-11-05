@@ -7,6 +7,7 @@ public abstract class ROSGradleConfig {
     // Properties for API URL and file locations
     public abstract Property<String> getApiUrl();
     public abstract Property<String> getConfigFilePath();
+    public abstract Property<Boolean> getKeepOriginalJar();
 
     public @NotNull String getObfuscationEndpoint() {
         String base = getApiUrl().get();

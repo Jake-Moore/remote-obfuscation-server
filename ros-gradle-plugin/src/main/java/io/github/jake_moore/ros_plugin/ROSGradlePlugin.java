@@ -21,6 +21,10 @@ public class ROSGradlePlugin implements Plugin<Project> {
         // Register the extension for configuration
         ROSGradleConfig config = project.getExtensions().create("rosConfig", ROSGradleConfig.class);
 
+        // Attempt to have the jar task re-run if the jar file doesn't exist
+        // This is because we will sometimes delete the file, and it should be recreated if it doesn't exist
+        fixJarTask(project, config);
+
         // Register the obfuscateJar task, depending on the JAR task.
         TaskProvider<Task> obfuscateJarTask = project.getTasks().register("rosObfuscateJar", task -> {
             task.dependsOn("jar"); // Ensures `jar` runs first
@@ -45,5 +49,13 @@ public class ROSGradlePlugin implements Plugin<Project> {
             // Forward configuration to the task
             task.setConfig(config);
         });
+    }
+
+    private void fixJarTask(Project project, ROSGradleConfig config) {
+        // Add an up-to-date check to the jar task
+        // Here, we ensure that the jar file exists, if not the jar task cannot be up-to-date
+        Jar jarTask = (Jar) project.getTasks().getByName("jar");
+        File jarOutputFile = jarTask.getArchiveFile().get().getAsFile();
+        jarTask.getOutputs().upToDateWhen(task -> jarOutputFile.exists());
     }
 }
