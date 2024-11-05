@@ -34,11 +34,6 @@ public class ROSGradlePlugin implements Plugin<Project> {
             });
         });
 
-        // Ensure that obfuscateJar is executed when the build task is run
-        project.getTasks().getByName("build").dependsOn(obfuscateJarTask);
-
-
-
         // Register the watermarkJar task
         project.getTasks().create("rosGetWatermark", WatermarkTask.class, task -> {
             // Forward configuration to the task
