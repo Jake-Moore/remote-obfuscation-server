@@ -103,10 +103,10 @@ public class StackTraceTask extends DefaultTask {
         // Validate stack trace path provided
         File stackTraceFile = new File(stackTracePath);
         if (!stackTraceFile.exists()) {
-            throw new RuntimeException("The specified stack trace file does not exist.");
+            throw new RuntimeException("The specified stack trace file does not exist: " + stackTraceFile.getAbsolutePath());
         }
         if (stackTraceFile.isDirectory()) {
-            throw new RuntimeException("The specified stack trace file path is a directory, not a file.");
+            throw new RuntimeException("The specified stack trace file path is a directory, not a file: " + stackTraceFile.getAbsolutePath());
         }
 
         try {
