@@ -39,6 +39,12 @@ extensions.configure<ROSGradleConfig>("rosConfig") {
   // You can verify if this is the correct URL by going to one of the endpoints, like '${apiUrl}/api/obfuscate' and verifying the GET request responded with a ready message.
   apiUrl = "https://obf.luxiouslabs.net/"
   configFilePath = project.file("allatori.xml").absolutePath
+
+  // This field is `false` by default.
+  // When set to true, the `rosObfuscateJar` task won't delete the `jar` and `shadowJar` outputs
+  // This default helps ensure only the obfuscated jar remains in the build folder, reducing the chance
+  //  of someone taking the wrong jar from the builds folder
+  // keepOriginalJar = true
 }
 
 // For most applications, you may want to have obfuscation run for every build
@@ -46,7 +52,16 @@ tasks.build.get().dependsOn(tasks.rosObfuscateJar)
 ```
 
 
+
+
 **REMINDER:** In order to run any of the ROS tasks, you will need to configured your environment variable so requests can be authenticated. See the [User-Authorization](https://github.com/Jake-Moore/remote-obfuscation-server/blob/main/.docs/User-Authorization.md) guide for details.
+
+### Integration with Gradle Shadow Plugin
+By default, the obfuscation task (`rosObfuscateJar`) will consume the output of the gradle `jar` task. However, in the presense of a task called `shadowJar` (as implemented by the Shadow plugin), `rosObfuscateJar` **will instead consume the `shadowJar` output file for obfuscation.**  
+Additionally, when shadowJar is detected, the `keepOriginalJar` feature will delete BOTH the `jar` and `shadowJar` outputs, unless set to true in the `rosConfig`.  
+
+**NOTE:** This means it is your responsibility to configure the obfuscator to ignore any shaded packages (if that is your wish), because they will be in the jar file (the uber-jar) that gets sent to the obfuscation server.
+
 
 ## Gradle Tasks
 #### `rosObfuscateJar`
