@@ -27,6 +27,11 @@ public class ObfuscateJarTask extends DefaultTask {
     @Setter @Internal
     private @Nullable ROSGradleConfig config = null;
 
+    public ObfuscateJarTask() {
+        // Obfuscation is NEVER up-to-date, it can always be re-run to get a new obfuscated JAR
+        getOutputs().upToDateWhen(task -> false);
+    }
+
     @InputFile
     public File getInputJar() {
         // Retrieve the jar task output file, or the shadowJar output if that plugin is installed

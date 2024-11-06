@@ -57,5 +57,14 @@ public class ROSGradlePlugin implements Plugin<Project> {
             File shadowJarOutputFile = shadowJarTask.getArchiveFile().get().getAsFile();
             shadowJarTask.getOutputs().upToDateWhen(task -> shadowJarOutputFile.exists());
         }
+
+        // Add a lifecycle hook to ensure Jar tasks are up-to-date
+        project.getTasks().whenTaskAdded(task -> {
+            if (!(task instanceof Jar jTask)) { return; }
+
+            // Apply upToDateWhen condition
+            File jTaskOutputFile = jTask.getArchiveFile().get().getAsFile();
+            task.getOutputs().upToDateWhen(t -> jTaskOutputFile.exists());
+        });
     }
 }
