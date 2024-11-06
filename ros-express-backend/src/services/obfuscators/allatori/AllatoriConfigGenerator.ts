@@ -1,6 +1,7 @@
 import fs from 'fs';
 import { XMLParser, XMLBuilder } from 'fast-xml-parser';
 import crypto from 'crypto';
+import { Obfuscator } from '../Obfuscator.js';
 
 export function generateUUIDFragment(): string {
     // Generate a UUID
@@ -15,7 +16,8 @@ export async function updateObfConfig(
     outputPath: string,
     logPath: string,
     requestID: string,
-    userEmail: string
+    _userEmail: string,
+    obfuscator: Obfuscator
 ): Promise<void> {
     // Load and parse the XML file
     const xmlData = fs.readFileSync(configPath, 'utf8');
@@ -28,12 +30,8 @@ export async function updateObfConfig(
     }
 
     // Ensure <input><jar> structure exists and set 'in' and 'out' attributes
-    if (!xml.config.input) {
-        xml.config.input = {};
-    }
-    if (!xml.config.input.jar) {
-        xml.config.input.jar = {};
-    }
+    xml.config.input = {};
+    xml.config.input.jar = {};
 
     // Set the 'in' and 'out' attributes for the <jar> element with safe path notation
     xml.config.input.jar["@_in"] = inputPath;
@@ -54,10 +52,13 @@ export async function updateObfConfig(
     // Remove any watermark keys (breaks the obfuscation process at times)
     delete xml.config.watermark;
 
-    // Set the random seed to the requestID
+    // Delete any existing random-seed property
+    xml.config.property = xml.config.property.filter((prop: any) => prop["@_name"] !== "random-seed");
+    // Set the random seed to a random 50-character string
+    const seed = obfuscator.generateRandomString(50);
     xml.config.property.push({
         "@_name": "random-seed",
-        "@_value": `request-${requestID}-${crypto.randomUUID()}`
+        "@_value": seed
     });
 
     // Convert the modified object back to XML

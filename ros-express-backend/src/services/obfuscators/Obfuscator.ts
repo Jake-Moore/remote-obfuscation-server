@@ -55,4 +55,16 @@ export class Obfuscator {
       return false;
     }
   }
+
+  generateRandomString(length: number = 50): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    while (result.length < length) {
+      const index = Math.floor(Math.random() * chars.length);
+      if (index >= 0 && index < chars.length) {
+        result += chars.charAt(index);
+      }
+    }
+    return result;
+  }
 }

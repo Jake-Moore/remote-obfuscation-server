@@ -60,7 +60,7 @@ export class AllatoriObfuscator extends Obfuscator {
         const configPath = path.resolve(configFile.path);
         const outputPath = path.resolve(path.dirname(jarFile.path), `${requestID}.jar`);
         const logPath = path.resolve(path.dirname(jarFile.path), `${requestID}.log`);
-        await updateObfConfig(configPath, inputPath, outputPath, logPath, requestID, userEmail);
+        await updateObfConfig(configPath, inputPath, outputPath, logPath, requestID, userEmail, this);
 
         try {
             const output = await this.runAllatoriObfuscate(obfuscatorPath, configPath);
