@@ -47,6 +47,8 @@ services:
       # ROS_REQUIRED_ORGS: 'MyOrganizationName,Google' # Example of multiple orgs
       # ROS_REVERSE_PROXY: true # If deployed behind a reverse proxy (!! SEE ENV NOTES ABOVE !!)
       # ROS_IPV4_ONLY: true # If wanting to use ipv4 only
+      ROS_OBFUSCATOR_TYPE: '' # CHANGEME
+      # ROS_OBFUSCATOR_TYPE: 'ALLATORI' # For using the Allatori Obfuscator
 
 ```
 
