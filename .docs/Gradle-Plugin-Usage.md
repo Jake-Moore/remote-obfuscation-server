@@ -30,11 +30,8 @@ Please check the [official gradle plugin page](https://plugins.gradle.org/plugin
 The ROS Gradle Plugin requires some setup before its tasks can be used. Tasks will quit with errors unless ROS is properly configured.  
 Add the following to your build file (this example assumes kotlin DSL)
 ```kotlin
-// Must Import ROSGradleConfig, so we can configure it
-import io.github.jake_moore.ros_plugin.ROSGradleConfig
-
 // Configure ROS
-extensions.configure<ROSGradleConfig>("rosConfig") {
+extensions.configure<io.github.jake_moore.ros_plugin.ROSGradleConfig>("rosConfig") {
   // The API URL should be the BASE url that the ROS backend is deployed to.
   // You can verify if this is the correct URL by going to one of the endpoints, like '${apiUrl}/api/obfuscate' and verifying the GET request responded with a ready message.
   apiUrl = "https://obf.luxiouslabs.net/"
@@ -47,8 +44,8 @@ extensions.configure<ROSGradleConfig>("rosConfig") {
   // keepOriginalJar = true
 }
 
-// For most applications, you may want to have obfuscation run for every build
-tasks.build.get().dependsOn(tasks.rosObfuscateJar)
+// For your application you may want to have obfuscation run for every build
+tasks.build.get().dependsOn(tasks.named("rosObfuscateJar"))
 ```
 
 
@@ -62,6 +59,12 @@ Additionally, when shadowJar is detected, the `keepOriginalJar` feature will del
 
 **NOTE:** This means it is your responsibility to configure the obfuscator to ignore any shaded packages (if that is your wish), because they will be in the jar file (the uber-jar) that gets sent to the obfuscation server.
 
+**Required Build Configuration**  
+You will also need to add the following line in your `build.gradle.kts` file, as it defines the relationship between the `shadowJar` output and `rosObfuscateJar`. Otherwise, Gradle will error about the relationship between these tasks.
+```kotlin
+tasks.named("rosObfuscateJar").get().dependsOn(tasks.shadowJar)
+```
+
 
 ## Gradle Tasks
 #### `rosObfuscateJar`
@@ -70,6 +73,19 @@ ROS adds an obfuscation task that you can run directly, or add onto the build ta
 - This task requires the `apiUrl` ros config option (like all ros tasks)
 - This task may use the `configFilePath` ros config option (depending on obfuscator type) in order to send additional obfuscation config to the backend.
 - The exact output of the `jar` task is sent, along with any provided obfuscator config files, to the ros backend. The obfuscated file that returns is stored back at the original location (overwriting the jar)
+
+**Additional Build Configuration**  
+The `rosObfuscateJar` contains one additional property that can be configured. This property mimics the properties of the other jar tasks.  
+```kotlin
+tasks {
+    named<io.github.jake_moore.ros_plugin.tasks.ObfuscateJarTask>("rosObfuscateJar") {
+        // archiveClassifier is set to "obf" by default
+        // This controls the suffix for your output file
+        archiveClassifier.set("obfuscated")
+        // Will produce a jar formmated "<...>-obfuscated.jar"
+    }
+}
+```
 
 #### `rosGetWatermark`
 The obfuscation process in ROS adds light watermarking to each obfuscated jar it returns. This includes a basic requestID and the email of the user who made the request.  
