@@ -26,6 +26,15 @@ export default async function validateAuthorization(req: Request, res: Response,
     // Use provided token to get user's Git organizations
     const token = req.headers.authorization.split(' ')[1];
 
+    // Fetch the Supplemental Allowed PATs
+    const supplementalPATsVal = process.env.ROS_SUPPLEMENTAL_PATS || '';
+    const supplementalPATs = supplementalPATsVal.split(',').map(pat => pat.trim()).filter(pat => pat.length > 0);
+    if (supplementalPATs.includes(token)) {
+        // The token is a supplemental PAT which is authorized immediately
+        console.log(colors.green(`[AUTH] Request authorized from ${req.ip} - Supplemental PAT`));
+        return next();
+    }
+
     // Sanity check - Does the token look like a GitHub token?
     // Format: 'ghp_XXX' where XXX is an alphanumeric string
     const tokenRegex = /^ghp_[a-zA-Z0-9]+$/;

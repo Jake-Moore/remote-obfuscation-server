@@ -9,10 +9,16 @@ import org.gradle.api.Project;
 import org.gradle.api.tasks.bundling.Jar;
 
 import java.io.File;
+import java.util.concurrent.TimeUnit;
 
 @SuppressWarnings("unused")
 public class ROSGradlePlugin implements Plugin<Project> {
-    public static final OkHttpClient client = new OkHttpClient();
+    // Use more forgiving timeouts, in case the obfuscation server takes a while to respond
+    public static final OkHttpClient client = new OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS) // Timeout for establishing a connection
+            .readTimeout(30, TimeUnit.SECONDS)    // Timeout for reading data
+            .writeTimeout(30, TimeUnit.SECONDS)   // Timeout for writing data
+            .build();
 
     @Override
     public void apply(Project project) {
