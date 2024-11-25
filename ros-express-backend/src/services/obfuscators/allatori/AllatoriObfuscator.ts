@@ -1,17 +1,25 @@
-import path from 'path';
-import { Request, Response, NextFunction } from 'express';
-import { updateObfConfig, generateUUIDFragment } from './AllatoriConfigGenerator.js';
-import { getLogsStorageDir, getObfuscatorPath, getDefaultObfuscatorPath, getObfuscatorPathEnvVar } from '../../envService.js';
-import deleteTemp from '../../ioService.js';
-import { getUserEmail } from '../../../middleware/authorization.js';
-import fs from 'fs';
-import colors from 'colors';
-import { exec } from 'child_process';
-import AdmZip from 'adm-zip';
-import { Obfuscator } from '../Obfuscator.js';
+import path from "path";
+import { Request, Response, NextFunction } from "express";
+import {
+    updateObfConfig,
+    generateUUIDFragment,
+} from "./AllatoriConfigGenerator.js";
+import {
+    getLogsStorageDir,
+    getObfuscatorPath,
+    getDefaultObfuscatorPath,
+    getObfuscatorPathEnvVar,
+} from "../../envService.js";
+import deleteTemp from "../../ioService.js";
+import { getUserEmail } from "../../../middleware/authorization.js";
+import fs from "fs";
+import colors from "colors";
+import { exec } from "child_process";
+import AdmZip from "adm-zip";
+import { Obfuscator } from "../Obfuscator.js";
 
 export class AllatoriObfuscator extends Obfuscator {
-    private watermarkFileName = 'obfuscation.json';
+    private watermarkFileName = "obfuscation.json";
 
     async obfuscate(
         req: Request,
@@ -21,13 +29,17 @@ export class AllatoriObfuscator extends Obfuscator {
         configFile: Express.Multer.File
     ): Promise<Response<any> | void> {
         // Validate file extensions
-        if (path.extname(jarFile.originalname) !== '.jar') {
-            const err = new Error(`The provided 'jar' field file must be a jar file.`);
+        if (path.extname(jarFile.originalname) !== ".jar") {
+            const err = new Error(
+                `The provided 'jar' field file must be a jar file.`
+            );
             (err as any).status = 400; // Bad Request
             return next(err);
         }
-        if (path.extname(configFile.originalname) !== '.xml') {
-            const err = new Error(`The provided 'config' field file must be an xml file.`);
+        if (path.extname(configFile.originalname) !== ".xml") {
+            const err = new Error(
+                `The provided 'config' field file must be an xml file.`
+            );
             (err as any).status = 400; // Bad Request
             return next(err);
         }
@@ -35,18 +47,26 @@ export class AllatoriObfuscator extends Obfuscator {
         // Fetch the Obfuscator File Path
         const obfuscatorPath = getObfuscatorPath();
         if (obfuscatorPath === null) {
-            const err = new Error('Interal Server Error: Please Check Server Logs.');
+            const err = new Error(
+                "Interal Server Error: Please Check Server Logs."
+            );
             (err as any).status = 500; // Internal Server Error
-            console.log(colors.red(`Invalid obfuscator path: '${process.env[getObfuscatorPathEnvVar()]}'. Override environment variable '${getObfuscatorPathEnvVar()}' or fulfill the default path: '${getDefaultObfuscatorPath()}'`));
+            console.log(
+                colors.red(
+                    `Invalid obfuscator path: '${
+                        process.env[getObfuscatorPathEnvVar()]
+                    }'. Override environment variable '${getObfuscatorPathEnvVar()}' or fulfill the default path: '${getDefaultObfuscatorPath()}'`
+                )
+            );
             return next(err);
         }
 
         // Fetch the user email
-        const authHeader = req.headers.authorization || '';
-        const token = authHeader.split(' ')[1];
+        const authHeader = req.headers.authorization || "";
+        const token = authHeader.split(" ")[1];
         const userEmail = await getUserEmail(token);
         if (!userEmail) {
-            const err = new Error('Failed to fetch user email.');
+            const err = new Error("Failed to fetch user email.");
             (err as any).status = 500; // Internal Server Error
             console.log(colors.red(err.message));
             return next(err);
@@ -58,18 +78,44 @@ export class AllatoriObfuscator extends Obfuscator {
         // Calculate paths (absolute) for obfuscation config
         const inputPath = path.resolve(jarFile.path);
         const configPath = path.resolve(configFile.path);
-        const outputPath = path.resolve(path.dirname(jarFile.path), `${requestID}.jar`);
-        const logPath = path.resolve(path.dirname(jarFile.path), `${requestID}.log`);
-        await updateObfConfig(configPath, inputPath, outputPath, logPath, requestID, userEmail, this);
+        const outputPath = path.resolve(
+            path.dirname(jarFile.path),
+            `${requestID}.jar`
+        );
+        const logPath = path.resolve(
+            path.dirname(jarFile.path),
+            `${requestID}.log`
+        );
+        await updateObfConfig(
+            configPath,
+            inputPath,
+            outputPath,
+            logPath,
+            requestID,
+            userEmail,
+            this
+        );
 
         try {
-            const output = await this.runAllatoriObfuscate(obfuscatorPath, configPath);
-            await this.injectWatermark(req, res, next, outputPath, requestID, userEmail);
+            const output = await this.runAllatoriObfuscate(
+                obfuscatorPath,
+                configPath
+            );
+            await this.injectWatermark(
+                req,
+                res,
+                next,
+                outputPath,
+                requestID,
+                userEmail
+            );
 
-            const base64Output = Buffer.from(output).toString('base64');
-            const base64JarFile = fs.readFileSync(outputPath).toString('base64');
-            return res.status(200).json({ 
-                message: 'Obfuscation completed successfully!', 
+            const base64Output = Buffer.from(output).toString("base64");
+            const base64JarFile = fs
+                .readFileSync(outputPath)
+                .toString("base64");
+            return res.status(200).json({
+                message: "Obfuscation completed successfully!",
                 obfuscator_output: base64Output,
                 request_id: requestID,
                 output_file: base64JarFile,
@@ -82,14 +128,22 @@ export class AllatoriObfuscator extends Obfuscator {
             return next(err);
         } finally {
             deleteTemp({ path: outputPath });
-            const logDest = path.resolve(getLogsStorageDir(), `${requestID}.log`);
+            const logDest = path.resolve(
+                getLogsStorageDir(),
+                `${requestID}.log`
+            );
             fs.copyFileSync(logPath, logDest);
-            console.log(`Log file for request ${requestID} saved to: '${logDest}'`);
+            console.log(
+                `Log file for request ${requestID} saved to: '${logDest}'`
+            );
             deleteTemp({ path: logPath });
         }
     }
 
-    private runAllatoriObfuscate(allatoriPath: string, configPath: string): Promise<string> {
+    private runAllatoriObfuscate(
+        allatoriPath: string,
+        configPath: string
+    ): Promise<string> {
         return new Promise((resolve, reject) => {
             const command = `java -cp "${allatoriPath}" com.allatori.Obfuscate "${configPath}"`;
 
@@ -110,44 +164,62 @@ export class AllatoriObfuscator extends Obfuscator {
         requestID: string,
         stackTraceBase64: string
     ): Promise<void> {
-        const decodedStackTrace = Buffer.from(stackTraceBase64, 'base64').toString('utf-8');
+        const decodedStackTrace = Buffer.from(
+            stackTraceBase64,
+            "base64"
+        ).toString("utf-8");
 
         const logStorageDir = getLogsStorageDir();
         const logPath = `${logStorageDir}/${requestID}.log`;
         if (!fs.existsSync(logPath)) {
-            const err = new Error(`No log file found for requestID: ${requestID}`);
+            const err = new Error(
+                `No log file found for requestID: ${requestID}`
+            );
             (err as any).status = 404;
             return next(err);
         }
 
         const obfuscatorPath = getObfuscatorPath();
         if (obfuscatorPath === null) {
-            const err = new Error(`Invalid obfuscator path: '${process.env[getObfuscatorPathEnvVar()]}'. Override environment variable '${getObfuscatorPathEnvVar()}' or fulfill the default path: '${getDefaultObfuscatorPath()}'`);
+            const err = new Error(
+                `Invalid obfuscator path: '${
+                    process.env[getObfuscatorPathEnvVar()]
+                }'. Override environment variable '${getObfuscatorPathEnvVar()}' or fulfill the default path: '${getDefaultObfuscatorPath()}'`
+            );
             (err as any).status = 500;
             console.log(colors.red(err.message));
             return next(err);
         }
 
-        const uploadsDir = path.resolve(process.env.ROS_UPLOADS_TRACE_STORAGE || './uploads-trace');
+        const uploadsDir = path.resolve(
+            process.env.ROS_UPLOADS_TRACE_STORAGE || "./uploads-trace"
+        );
         const tracePath = `${uploadsDir}/${requestID}.log`;
         const tracePathOut = `${uploadsDir}/${requestID}-out.log`;
         fs.mkdirSync(uploadsDir, { recursive: true });
         fs.writeFileSync(tracePath, decodedStackTrace);
 
         try {
-            await this.runAllatoriTrace(obfuscatorPath, logPath, tracePath, tracePathOut);
+            await this.runAllatoriTrace(
+                obfuscatorPath,
+                logPath,
+                tracePath,
+                tracePathOut
+            );
 
-            const traceOutStr = fs.readFileSync(tracePathOut, 'utf-8');
-            const traceOutBase64 = Buffer.from(traceOutStr).toString('base64');
+            const traceOutStr = fs.readFileSync(tracePathOut, "utf-8");
+            const traceOutBase64 = Buffer.from(traceOutStr).toString("base64");
             res.status(200).json({
-                message: 'Stack trace translated successfully',
+                message: "Stack trace translated successfully",
                 request_id: requestID,
                 output_trace_base64: traceOutBase64,
             });
         } catch (error) {
             // Pass errors to the error handler middleware
             console.error(colors.red(`Error calling stacktrace: ${error}`));
-            const err = new Error('Error calling stacktrace. Please check the server logs.');
+            const err = new Error(
+                "Error calling stacktrace. Please check the server logs."
+            );
             (err as any).status = 500;
             return next(err);
         } finally {
@@ -156,7 +228,12 @@ export class AllatoriObfuscator extends Obfuscator {
         }
     }
 
-    private runAllatoriTrace(allatoriPath: string, logPath: string, tracePath: string, tracePathOut: string): Promise<string> {
+    private runAllatoriTrace(
+        allatoriPath: string,
+        logPath: string,
+        tracePath: string,
+        tracePathOut: string
+    ): Promise<string> {
         return new Promise((resolve, reject) => {
             const command = `java -Xms128m -Xmx512m -cp "${allatoriPath}" com.allatori.StackTrace2 "${logPath}" "${tracePath}" "${tracePathOut}"`;
 
@@ -181,10 +258,15 @@ export class AllatoriObfuscator extends Obfuscator {
         try {
             const zip = new AdmZip(jarPath);
             const obfData = { request_id: requestID, request_user: userEmail };
-            zip.addFile(this.watermarkFileName, Buffer.from(JSON.stringify(obfData)));
+            zip.addFile(
+                this.watermarkFileName,
+                Buffer.from(JSON.stringify(obfData))
+            );
             zip.writeZip(jarPath);
         } catch (error) {
-            const err = new Error(`Failed to inject watermark into JAR file: ${error}`);
+            const err = new Error(
+                `Failed to inject watermark into JAR file: ${error}`
+            );
             (err as any).status = 500;
             return next(err);
         }
@@ -207,7 +289,7 @@ export class AllatoriObfuscator extends Obfuscator {
             throw new Error("Failed to find watermark file in JAR.");
         }
 
-        const obfData = obfFile.getData().toString('utf8');
+        const obfData = obfFile.getData().toString("utf8");
         return JSON.parse(obfData);
     }
 }

@@ -1,13 +1,13 @@
-import fs from 'fs';
-import { XMLParser, XMLBuilder } from 'fast-xml-parser';
-import crypto from 'crypto';
-import { Obfuscator } from '../Obfuscator.js';
+import fs from "fs";
+import { XMLParser, XMLBuilder } from "fast-xml-parser";
+import crypto from "crypto";
+import { Obfuscator } from "../Obfuscator.js";
 
 export function generateUUIDFragment(): string {
     // Generate a UUID
     const uuid = crypto.randomUUID();
     // Split the UUID by the hyphen and return the first part
-    return uuid.split('-')[0];
+    return uuid.split("-")[0];
 }
 
 export async function updateObfConfig(
@@ -20,7 +20,7 @@ export async function updateObfConfig(
     obfuscator: Obfuscator
 ): Promise<void> {
     // Load and parse the XML file
-    const xmlData = fs.readFileSync(configPath, 'utf8');
+    const xmlData = fs.readFileSync(configPath, "utf8");
     const parser = new XMLParser({ ignoreAttributes: false });
     let xml = parser.parse(xmlData);
 
@@ -42,30 +42,34 @@ export async function updateObfConfig(
         xml.config.property = [];
     }
     // Remove any existing log-file property
-    xml.config.property = xml.config.property.filter((prop: any) => prop["@_name"] !== "log-file");
+    xml.config.property = xml.config.property.filter(
+        (prop: any) => prop["@_name"] !== "log-file"
+    );
     // Add the log file property
     xml.config.property.push({
         "@_name": "log-file",
-        "@_value": logPath
+        "@_value": logPath,
     });
 
     // Remove any watermark keys (breaks the obfuscation process at times)
     delete xml.config.watermark;
 
     // Delete any existing random-seed property
-    xml.config.property = xml.config.property.filter((prop: any) => prop["@_name"] !== "random-seed");
+    xml.config.property = xml.config.property.filter(
+        (prop: any) => prop["@_name"] !== "random-seed"
+    );
     // Set the random seed to a random 50-character string
     const seed = obfuscator.generateRandomString(50);
     xml.config.property.push({
         "@_name": "random-seed",
-        "@_value": seed
+        "@_value": seed,
     });
 
     // Convert the modified object back to XML
     const builder = new XMLBuilder({
         ignoreAttributes: false,
         format: true,
-        indentBy: "    "
+        indentBy: "    ",
     });
     const updatedXml = builder.build(xml);
 
@@ -74,9 +78,12 @@ export async function updateObfConfig(
     // console.log(colors.green(`Updated XML file: ${configPath}`));
 }
 
-export async function generateWatermarkConfig(configPath: string, inputPath: string): Promise<void> {
+export async function generateWatermarkConfig(
+    configPath: string,
+    inputPath: string
+): Promise<void> {
     // Create an empty xml object, which will be filled with the required data
-    let xml: any = {}
+    let xml: any = {};
 
     // Ensure the <config> root exists
     if (!xml.config) {
@@ -94,7 +101,7 @@ export async function generateWatermarkConfig(configPath: string, inputPath: str
     const builder = new XMLBuilder({
         ignoreAttributes: false,
         format: true,
-        indentBy: "    "
+        indentBy: "    ",
     });
     const updatedXml = builder.build(xml);
 

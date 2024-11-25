@@ -1,12 +1,12 @@
 {
-  "compilerOptions": {
-    "target": "ESNext",
-    "module": "NodeNext",
-    "outDir": "dist",
-    "rootDir": "src",
-    "moduleResolution": "nodenext",
-    "esModuleInterop": true,
-    "strict": true,
-  },
-  "include": ["src/**/*.ts"]
+    "compilerOptions": {
+        "target": "ESNext",
+        "module": "NodeNext",
+        "outDir": "dist",
+        "rootDir": "src",
+        "moduleResolution": "nodenext",
+        "esModuleInterop": true,
+        "strict": true
+    },
+    "include": ["src/**/*.ts"]
 }
