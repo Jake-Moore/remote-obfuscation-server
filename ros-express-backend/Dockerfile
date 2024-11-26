@@ -1,5 +1,7 @@
-# Use a lightweight Linux image with OpenJDK
-FROM openjdk:17-jdk-slim
+# Use a lightweight Linux image with OpenJDK (Java 21)
+# NOTE: The version of Java here is important! It is the java version
+#  any obfuscator jars will be executed with.
+FROM openjdk:21-jdk-slim
 
 # Install Node.js and npm
 RUN apt-get update && \
