@@ -8,6 +8,8 @@ public abstract class ROSGradleConfig {
     public abstract Property<String> getApiUrl();
     public abstract Property<String> getConfigFilePath();
     public abstract Property<Boolean> getKeepOriginalJar();
+    public abstract Property<Integer> getPollMaxAttempts();
+    public abstract Property<Integer> getPollIntervalMs();
 
     public @NotNull String getObfuscationEndpoint() {
         String base = getApiUrl().get();

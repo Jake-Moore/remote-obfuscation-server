@@ -42,6 +42,16 @@ extensions.configure<io.github.jake_moore.ros_plugin.ROSGradleConfig>("rosConfig
   // This default helps ensure only the obfuscated jar remains in the build folder, reducing the chance
   //  of someone taking the wrong jar from the builds folder
   // keepOriginalJar = true
+  
+  // This field is set to 60 by default.
+  // This controls how many times we attempt to check the state of an obfuscation job
+  // The `pollIntervalMs` controls the time we wait between each check
+  pollMaxAttempts = 20
+  
+  // This field is set to 5000 by default. (5 seconds)
+  // This controls the time we wait between each check
+  // The `pollMaxAttempts` controls the max number of checks
+  pollIntervalMs = 1000
 }
 
 // For your application you may want to have obfuscation run for every build

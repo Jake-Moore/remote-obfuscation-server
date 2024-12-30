@@ -152,11 +152,14 @@ public class ObfuscateJarTask extends DefaultTask {
         }
 
         // Poll for completion
-        final int MAX_ATTEMPTS = 180; // 15 minutes max (180 * 5 seconds)
-        final int POLL_INTERVAL_MS = 5000; // 5 seconds
+        final int DEFAULT_MAX_ATTEMPTS = 60; // 5 minutes max (60 * 5 seconds)
+        final int DEFAULT_POLL_INTERVAL_MS = 5000; // 5 seconds
+        
+        final int maxAttempts = config.getPollMaxAttempts().getOrElse(DEFAULT_MAX_ATTEMPTS);
+        final int pollIntervalMs = config.getPollIntervalMs().getOrElse(DEFAULT_POLL_INTERVAL_MS);
         int attempts = 0;
 
-        while (attempts < MAX_ATTEMPTS) {
+        while (attempts < maxAttempts) {
             try (Response response = client.newCall(new Request.Builder()
                     .url(REQUEST_URL + "/" + requestID)
                     .header("Authorization", "Bearer " + authToken)
@@ -185,17 +188,17 @@ public class ObfuscateJarTask extends DefaultTask {
                     byte[] outputFileBytes = Base64.getDecoder().decode(jsonResponse.get("output_file").getAsString());
                     Files.write(outputJar.toPath(), outputFileBytes);
 
-                    System.out.println("Obfuscated Jar written to: " + outputJar.getAbsolutePath());
+                    System.out.println("\nObfuscated Jar written to: " + outputJar.getAbsolutePath());
                     System.out.println("\tRequest ID: " + requestID);
                     return;
                 } else if ("failed".equals(status)) {
                     throw new RuntimeException("Obfuscation failed: " + jsonResponse.get("error").getAsString());
                 } else {
                     // Still processing
-                    System.out.print("\rWaiting for obfuscation to complete... " + (attempts + 1) + "/" + MAX_ATTEMPTS + " (current status: " + status + ")");
+                    System.out.println("Waiting for obfuscation to complete... " + (attempts + 1) + "/" + maxAttempts + " (current status: " + status + ")");
                     attempts++;
                     try {
-                        Thread.sleep(POLL_INTERVAL_MS);
+                        Thread.sleep(pollIntervalMs);
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                         throw new RuntimeException("Interrupted while waiting for obfuscation", e);
@@ -204,7 +207,7 @@ public class ObfuscateJarTask extends DefaultTask {
             }
         }
 
-        throw new RuntimeException("Obfuscation timed out after " + (MAX_ATTEMPTS * POLL_INTERVAL_MS / 1000) + " seconds");
+        throw new RuntimeException("Obfuscation timed out after " + (maxAttempts * pollIntervalMs / 1000) + " seconds");
     }
 
     @NotNull
