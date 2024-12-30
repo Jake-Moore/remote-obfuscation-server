@@ -1,9 +1,6 @@
 import path from "path";
 import { Request, Response, NextFunction } from "express";
-import {
-    updateObfConfig,
-    generateUUIDFragment,
-} from "./AllatoriConfigGenerator.js";
+import { updateObfConfig } from "./AllatoriConfigGenerator.js";
 import {
     getLogsStorageDir,
     getObfuscatorPath,
@@ -26,29 +23,30 @@ export class AllatoriObfuscator extends Obfuscator {
         res: Response,
         next: NextFunction,
         jarFile: Express.Multer.File,
-        configFile: Express.Multer.File
-    ): Promise<Response<any> | void> {
+        configFile: Express.Multer.File,
+        requestID: string
+    ): Promise<void> {
         // Validate file extensions
         if (path.extname(jarFile.originalname) !== ".jar") {
             const err = new Error(
                 `The provided 'jar' field file must be a jar file.`
             );
             (err as any).status = 400; // Bad Request
-            return next(err);
+            throw err;
         }
         if (path.extname(configFile.originalname) !== ".xml") {
             const err = new Error(
                 `The provided 'config' field file must be an xml file.`
             );
             (err as any).status = 400; // Bad Request
-            return next(err);
+            throw err;
         }
 
         // Fetch the Obfuscator File Path
         const obfuscatorPath = getObfuscatorPath();
         if (obfuscatorPath === null) {
             const err = new Error(
-                "Interal Server Error: Please Check Server Logs."
+                "Internal Server Error: Please Check Server Logs."
             );
             (err as any).status = 500; // Internal Server Error
             console.log(
@@ -58,7 +56,7 @@ export class AllatoriObfuscator extends Obfuscator {
                     }'. Override environment variable '${getObfuscatorPathEnvVar()}' or fulfill the default path: '${getDefaultObfuscatorPath()}'`
                 )
             );
-            return next(err);
+            throw err;
         }
 
         // Fetch the user email
@@ -69,11 +67,8 @@ export class AllatoriObfuscator extends Obfuscator {
             const err = new Error("Failed to fetch user email.");
             (err as any).status = 500; // Internal Server Error
             console.log(colors.red(err.message));
-            return next(err);
+            throw err;
         }
-
-        // Create a Unique Request ID that identifies this obfuscation request and its log
-        const requestID = `${Date.now()}-${generateUUIDFragment()}`;
 
         // Calculate paths (absolute) for obfuscation config
         const inputPath = path.resolve(jarFile.path);
@@ -110,24 +105,7 @@ export class AllatoriObfuscator extends Obfuscator {
                 userEmail
             );
 
-            const base64Output = Buffer.from(output).toString("base64");
-            const base64JarFile = fs
-                .readFileSync(outputPath)
-                .toString("base64");
-            return res.status(200).json({
-                message: "Obfuscation completed successfully!",
-                obfuscator_output: base64Output,
-                request_id: requestID,
-                output_file: base64JarFile,
-                request_user: userEmail,
-            });
-        } catch (error) {
-            console.error(colors.red(error as any));
-            const err = new Error(`Failed to obfuscate jar file: ${error}`);
-            (err as any).status = 500;
-            return next(err);
-        } finally {
-            deleteTemp({ path: outputPath });
+            // Copy log file to storage
             const logDest = path.resolve(
                 getLogsStorageDir(),
                 `${requestID}.log`
@@ -137,6 +115,12 @@ export class AllatoriObfuscator extends Obfuscator {
                 `Log file for request ${requestID} saved to: '${logDest}'`
             );
             deleteTemp({ path: logPath });
+
+            // Return without base64 encoding the jar - that will happen when the client polls for it
+            return;
+        } catch (error) {
+            console.error(colors.red(error as any));
+            throw new Error(`Failed to obfuscate jar file: ${error}`);
         }
     }
 

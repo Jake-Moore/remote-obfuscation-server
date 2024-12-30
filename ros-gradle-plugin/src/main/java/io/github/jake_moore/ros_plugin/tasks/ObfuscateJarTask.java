@@ -1,18 +1,5 @@
 package io.github.jake_moore.ros_plugin.tasks;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import io.github.jake_moore.ros_plugin.ROSGradleConfig;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.SneakyThrows;
-import okhttp3.*;
-import org.gradle.api.DefaultTask;
-import org.gradle.api.provider.Property;
-import org.gradle.api.tasks.*;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -20,7 +7,29 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 
+import org.gradle.api.DefaultTask;
+import org.gradle.api.provider.Property;
+import org.gradle.api.tasks.Input;
+import org.gradle.api.tasks.InputFile;
+import org.gradle.api.tasks.Internal;
+import org.gradle.api.tasks.OutputFile;
+import org.gradle.api.tasks.TaskAction;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
+import io.github.jake_moore.ros_plugin.ROSGradleConfig;
 import static io.github.jake_moore.ros_plugin.ROSGradlePlugin.client;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.SneakyThrows;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 @Setter @Getter
 public class ObfuscateJarTask extends DefaultTask {
@@ -123,47 +132,79 @@ public class ObfuscateJarTask extends DefaultTask {
             throw new RuntimeException("ROS_GITHUB_PAT environment variable not set!");
         }
 
-        // Create request with authorization header
-        Request request = new Request.Builder()
+        String requestID;
+        // Initial request to start obfuscation
+        try (Response response = client.newCall(new Request.Builder()
                 .url(REQUEST_URL)
                 .header("Authorization", "Bearer " + authToken)
                 .post(requestBody)
-                .build();
-
-        try (Response response = client.newCall(request).execute()) {
+                .build()).execute()) {
+            
             String responseBody = response.body().string();
             if (!response.isSuccessful()) {
                 throw new RuntimeException("Unexpected code (" + response.code() + "): " + responseBody);
             }
 
-            // Parse the JSON response
+            // Parse the JSON response to get the request ID
             JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
-            String requestID = jsonResponse.get("request_id").getAsString();
-            String obfuscatorOutputBase64 = jsonResponse.get("obfuscator_output").getAsString();
+            requestID = jsonResponse.get("request_id").getAsString();
+            System.out.println("Obfuscation job started with ID: " + requestID);
+        }
 
-            // Decode base64-encoded obfuscator output
-            String obfuscatorOutput = new String(Base64.getDecoder().decode(obfuscatorOutputBase64));
-            System.out.println("Obfuscator output: " + obfuscatorOutput);
+        // Poll for completion
+        final int MAX_ATTEMPTS = 180; // 15 minutes max (180 * 5 seconds)
+        final int POLL_INTERVAL_MS = 5000; // 5 seconds
+        int attempts = 0;
 
-            // We will save our obfuscated file to a separate -obf jar file, so that the original `jar` task doesn't
-            //  mistake it for the original JAR file and consider it cached.
+        while (attempts < MAX_ATTEMPTS) {
+            try (Response response = client.newCall(new Request.Builder()
+                    .url(REQUEST_URL + "/" + requestID)
+                    .header("Authorization", "Bearer " + authToken)
+                    .get()
+                    .build()).execute()) {
 
-            // If the file already exists, we should delete it
-            if (outputJar.exists()) {
-                if (outputJar.delete()) {
-                    System.out.println("Deleted existing obfuscated JAR file: " + outputJar.getAbsolutePath());
-                }else {
-                    throw new RuntimeException("Failed to delete existing obfuscated JAR file: " + outputJar.getAbsolutePath());
+                String responseBody = response.body().string();
+                if (!response.isSuccessful()) {
+                    throw new RuntimeException("Unexpected code (" + response.code() + "): " + responseBody);
+                }
+
+                JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
+                String status = jsonResponse.get("status").getAsString();
+
+                if ("completed".equals(status)) {
+                    // If the file already exists, we should delete it
+                    if (outputJar.exists()) {
+                        if (outputJar.delete()) {
+                            System.out.println("Deleted existing obfuscated JAR file: " + outputJar.getAbsolutePath());
+                        } else {
+                            throw new RuntimeException("Failed to delete existing obfuscated JAR file: " + outputJar.getAbsolutePath());
+                        }
+                    }
+
+                    // Translate the base64-encoded JAR string back into a standard file at our desired location
+                    byte[] outputFileBytes = Base64.getDecoder().decode(jsonResponse.get("output_file").getAsString());
+                    Files.write(outputJar.toPath(), outputFileBytes);
+
+                    System.out.println("Obfuscated Jar written to: " + outputJar.getAbsolutePath());
+                    System.out.println("\tRequest ID: " + requestID);
+                    return;
+                } else if ("failed".equals(status)) {
+                    throw new RuntimeException("Obfuscation failed: " + jsonResponse.get("error").getAsString());
+                } else {
+                    // Still processing
+                    System.out.print("\rWaiting for obfuscation to complete... " + (attempts + 1) + "/" + MAX_ATTEMPTS + " (current status: " + status + ")");
+                    attempts++;
+                    try {
+                        Thread.sleep(POLL_INTERVAL_MS);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new RuntimeException("Interrupted while waiting for obfuscation", e);
+                    }
                 }
             }
-
-            // Translate the base64-encoded JAR string back into a standard file at our desired location
-            byte[] outputFileBytes = Base64.getDecoder().decode(jsonResponse.get("output_file").getAsString());
-            Files.write(outputJar.toPath(), outputFileBytes);
-
-            System.out.println("Obfuscated Jar written to: " + outputJar.getAbsolutePath());
-            System.out.println("\tRequest ID: " + requestID);
         }
+
+        throw new RuntimeException("Obfuscation timed out after " + (MAX_ATTEMPTS * POLL_INTERVAL_MS / 1000) + " seconds");
     }
 
     @NotNull

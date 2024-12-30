@@ -6,7 +6,8 @@ export class Obfuscator {
         _res: Response,
         _next: NextFunction,
         _jarFile: Express.Multer.File,
-        _configFile: Express.Multer.File
+        _configFile: Express.Multer.File,
+        _requestID: string
     ): Promise<any | void> {
         throw new Error("Method 'obfuscate()' is not implemented.");
     }

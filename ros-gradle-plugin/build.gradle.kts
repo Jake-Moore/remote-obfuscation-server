@@ -55,6 +55,7 @@ tasks {
     }
 }
 
+// TO RELEASE: ./gradlew publishPlugins
 publishing {
     repositories {
         maven {
