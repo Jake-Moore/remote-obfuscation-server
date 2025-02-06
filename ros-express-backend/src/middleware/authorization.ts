@@ -117,6 +117,7 @@ export default async function validateAuthorization(
                 }`
             )
         );
+        console.log(error);
         res.status(401).json({ message: "Error authorizing with token." });
     }
 }
