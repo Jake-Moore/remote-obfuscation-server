@@ -21,13 +21,15 @@
         "express-backend": "file:",
         "fast-xml-parser": "^4.5.0",
         "jszip": "^3.10.1",
-        "multer": "^1.4.5-lts.1"
+        "multer": "^1.4.5-lts.1",
+        "node-cache": "^5.1.2"
     },
     "devDependencies": {
         "@types/adm-zip": "^0.5.6",
         "@types/express": "^5.0.0",
         "@types/multer": "^1.4.12",
         "@types/node": "^22.8.7",
+        "@types/node-cache": "^4.1.3",
         "nodemon": "^3.1.7",
         "rimraf": "^6.0.1",
         "ts-node": "^10.9.2",

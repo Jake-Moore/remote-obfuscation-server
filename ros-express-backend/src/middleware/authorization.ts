@@ -1,7 +1,11 @@
 import colors from "colors";
 import axios from "axios";
+import NodeCache from "node-cache";
 import { getRequiredGitOrgs } from "../services/envService.js";
 import { Request, Response, NextFunction } from "express";
+
+// Initialize cache with 1 minute TTL
+const cache = new NodeCache({ stdTTL: 60 });
 
 export default async function validateAuthorization(
     req: Request,
@@ -63,28 +67,41 @@ export default async function validateAuthorization(
     }
 
     try {
-        const response = await axios.get("https://api.github.com/user/orgs", {
-            headers: {
-                Authorization: `token ${token}`,
-            },
-        });
+        // Check cache first for organizations
+        const cacheKey = `orgs_${token}`;
+        const cachedOrgs = cache.get<string[]>(cacheKey);
+        
+        let organizations: string[];
+        if (cachedOrgs) {
+            organizations = cachedOrgs;
+        } else {
+            const response = await axios.get("https://api.github.com/user/orgs", {
+                headers: {
+                    Authorization: `token ${token}`,
+                },
+            });
 
-        // Validate the response data is a JSON array
-        if (!Array.isArray(response.data)) {
-            const err = new Error(`Error authorizing request.`);
-            (err as any).status = 401;
-            console.log(
-                colors.red(
-                    `[AUTH] Request denied from ${req.ip} - ${err.message} - Malformed response data`
-                )
-            );
-            return next(err);
+            // Validate the response data is a JSON array
+            if (!Array.isArray(response.data)) {
+                const err = new Error(`Error authorizing request.`);
+                (err as any).status = 401;
+                console.log(
+                    colors.red(
+                        `[AUTH] Request denied from ${req.ip} - ${err.message} - Malformed response data`
+                    )
+                );
+                return next(err);
+            }
+
+            // Compose an array of this user's orgs from the 'login' field in each object of the array
+            organizations = response.data
+                .map((org: { login: string }) => org.login || "")
+                .filter((org) => org.length > 0);
+            
+            // Store in cache
+            cache.set(cacheKey, organizations);
         }
 
-        // Compose an array of this user's orgs from the 'login' field in each object of the array
-        const organizations = response.data
-            .map((org: { login: string }) => org.login || "")
-            .filter((org) => org.length > 0);
         const requiredOrgs = getRequiredGitOrgs();
 
         // Require that we are able to fetch an email for this user
@@ -134,6 +151,14 @@ export async function getUserEmail(token: string): Promise<string> {
         return "supplemental@ros.pat";
     }
 
+    // Check cache first for email
+    const cacheKey = `email_${token}`;
+    const cachedEmail = cache.get<string>(cacheKey);
+    
+    if (cachedEmail) {
+        return cachedEmail;
+    }
+
     const response = await axios.get("https://api.github.com/user/emails", {
         headers: {
             Authorization: `token ${token}`,
@@ -152,5 +177,8 @@ export async function getUserEmail(token: string): Promise<string> {
     if (!primary || !primary.email) {
         throw new Error(`Error: No primary user email found`);
     }
+
+    // Store in cache
+    cache.set(cacheKey, primary.email);
     return primary.email;
 }
