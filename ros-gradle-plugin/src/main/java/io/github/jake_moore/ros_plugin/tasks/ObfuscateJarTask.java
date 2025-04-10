@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 
+import com.google.gson.JsonElement;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Input;
@@ -149,6 +150,14 @@ public class ObfuscateJarTask extends DefaultTask {
             JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
             requestID = jsonResponse.get("request_id").getAsString();
             System.out.println("Obfuscation job started with ID: " + requestID);
+            @Nullable JsonElement queue_position = jsonResponse.get("queue_position");
+            @Nullable JsonElement total_queue_size = jsonResponse.get("total_queue_size");
+            if (queue_position == null || total_queue_size == null) {
+                System.out.println("No queue position information available.");
+            } else {
+                // Print the queue position
+                System.out.println("Current queue position: " + queue_position.getAsInt() + "/" + total_queue_size.getAsInt());
+            }
         }
 
         // Poll for completion

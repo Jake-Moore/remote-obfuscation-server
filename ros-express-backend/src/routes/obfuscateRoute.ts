@@ -12,6 +12,7 @@ import {
     cleanupJob,
 } from "../services/jobService.js";
 import { generateUUIDFragment } from "../services/obfuscators/allatori/AllatoriConfigGenerator.js";
+import { addToQueue } from "../services/queueService.js";
 
 const router = express.Router();
 
@@ -74,36 +75,44 @@ router.post(
                 outputPath
             );
 
-            // Start obfuscation process in background
-            (async () => {
-                try {
-                    updateJobStatus(requestID, "processing");
-                    await obfuscator.obfuscate(
-                        req,
-                        res,
-                        next,
-                        jarFile,
-                        configFile,
-                        requestID
-                    );
-                    updateJobStatus(requestID, "completed");
-                } catch (error) {
-                    console.error(
-                        colors.red(`Error in background obfuscation: ${error}`)
-                    );
-                    updateJobStatus(
-                        requestID,
-                        "failed",
-                        error instanceof Error ? error.message : String(error)
-                    );
-                }
-            })();
+            // Add job to queue and get its position and size
+            const queueResult = await addToQueue("obfuscate", {
+                id: requestID,
+                type: "obfuscate",
+                process: async () => {
+                    try {
+                        updateJobStatus(requestID, "processing");
+                        await obfuscator.obfuscate(
+                            req,
+                            res,
+                            next,
+                            jarFile,
+                            configFile,
+                            requestID
+                        );
+                        updateJobStatus(requestID, "completed");
+                    } catch (error) {
+                        console.error(
+                            colors.red(`Error in background obfuscation: ${error}`)
+                        );
+                        updateJobStatus(
+                            requestID,
+                            "failed",
+                            error instanceof Error ? error.message : String(error)
+                        );
+                    }
+                },
+            });
 
-            // Return immediately with job ID
+            console.log(colors.gray(`[Obfuscate] Request ${requestID} queued at position ${queueResult.position + 1}/${queueResult.size}`));
+
+            // Return immediately with job ID and queue information
             res.status(202).json({
-                message: "Obfuscation job started",
+                message: "Obfuscation job queued",
                 request_id: requestID,
                 status: job.status,
+                queue_position: queueResult.position + 1,
+                total_queue_size: queueResult.size,
             });
         } catch (error) {
             console.error(colors.red(`Error starting obfuscation: ${error}`));
