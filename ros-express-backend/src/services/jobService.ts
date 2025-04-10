@@ -48,6 +48,7 @@ export function updateJobStatus(
     if (error) {
         job.error = error;
     }
+    console.log(colors.gray(`[Job] ${requestID} status updated to ${status}`));
     jobs.set(requestID, job);
 }
 
