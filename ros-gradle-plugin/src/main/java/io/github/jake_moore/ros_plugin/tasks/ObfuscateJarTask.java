@@ -163,12 +163,19 @@ public class ObfuscateJarTask extends DefaultTask {
         // Poll for completion
         final int DEFAULT_MAX_ATTEMPTS = 60; // 5 minutes max (60 * 5 seconds)
         final int DEFAULT_POLL_INTERVAL_MS = 5000; // 5 seconds
-        
+
         final int maxAttempts = config.getPollMaxAttempts().getOrElse(DEFAULT_MAX_ATTEMPTS);
         final int pollIntervalMs = config.getPollIntervalMs().getOrElse(DEFAULT_POLL_INTERVAL_MS);
         int attempts = 0;
 
+        // Continue to poll obfuscation status until we have a definite answer, or we run out of attempts
         while (attempts < maxAttempts) {
+            // Still processing
+            System.out.println("Waiting for obfuscation to complete... " + (attempts + 1) + "/" + maxAttempts);
+
+            // Sleep a bit before fetching obfuscation results
+            sleep(pollIntervalMs);
+
             try (Response response = client.newCall(new Request.Builder()
                     .url(REQUEST_URL + "/" + requestID)
                     .header("Authorization", "Bearer " + authToken)
@@ -183,7 +190,13 @@ public class ObfuscateJarTask extends DefaultTask {
                 JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
                 String status = jsonResponse.get("status").getAsString();
 
+                // Log Status
+                System.out.println("Current Obfuscation status (" + (attempts + 1) + "/" + maxAttempts + "): " + status);
+
                 if ("completed".equals(status)) {
+                    // Log start of Jar copy
+                    System.out.println("\nObfuscation completed, writing JAR to: " + outputJar.getAbsolutePath());
+
                     // If the file already exists, we should delete it
                     if (outputJar.exists()) {
                         if (outputJar.delete()) {
@@ -197,26 +210,27 @@ public class ObfuscateJarTask extends DefaultTask {
                     byte[] outputFileBytes = Base64.getDecoder().decode(jsonResponse.get("output_file").getAsString());
                     Files.write(outputJar.toPath(), outputFileBytes);
 
-                    System.out.println("\nObfuscated Jar written to: " + outputJar.getAbsolutePath());
+                    System.out.println("Obfuscated Jar written to: " + outputJar.getAbsolutePath());
                     System.out.println("\tRequest ID: " + requestID);
                     return;
                 } else if ("failed".equals(status)) {
                     throw new RuntimeException("Obfuscation failed: " + jsonResponse.get("error").getAsString());
                 } else {
-                    // Still processing
-                    System.out.println("Waiting for obfuscation to complete... " + (attempts + 1) + "/" + maxAttempts + " (current status: " + status + ")");
                     attempts++;
-                    try {
-                        Thread.sleep(pollIntervalMs);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        throw new RuntimeException("Interrupted while waiting for obfuscation", e);
-                    }
                 }
             }
         }
 
         throw new RuntimeException("Obfuscation timed out after " + (maxAttempts * pollIntervalMs / 1000) + " seconds");
+    }
+
+    private static void sleep(int pollIntervalMs) {
+        try {
+            Thread.sleep(pollIntervalMs);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while waiting for obfuscation", e);
+        }
     }
 
     @NotNull
