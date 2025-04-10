@@ -12,7 +12,7 @@ import {
     cleanupJob,
 } from "../services/jobService.js";
 import { generateUUIDFragment } from "../services/obfuscators/allatori/AllatoriConfigGenerator.js";
-import { addToQueue } from "../services/queueService.js";
+import { addToQueue, getQueueLength, getJobQueueIndex } from "../services/queueService.js";
 
 const router = express.Router();
 
@@ -104,14 +104,14 @@ router.post(
                 },
             });
 
-            console.log(colors.gray(`[Obfuscate] Request ${requestID} queued at position ${queueResult.position + 1}/${queueResult.size}`));
+            console.log(colors.gray(`[Obfuscate] Request ${requestID} queued at position ${queueResult.index + 1}/${queueResult.size}`));
 
             // Return immediately with job ID and queue information
             res.status(202).json({
                 message: "Obfuscation job queued",
                 request_id: requestID,
                 status: job.status,
-                queue_position: queueResult.position + 1,
+                queue_index: queueResult.index,
                 total_queue_size: queueResult.size,
             });
         } catch (error) {
@@ -138,40 +138,73 @@ router.get(
             return next(err);
         }
 
-        if (
-            job.status === "completed" &&
-            job.outputPath &&
-            fs.existsSync(job.outputPath)
-        ) {
-            // Read the jar file and send it in the response
-            const base64JarFile = fs
-                .readFileSync(job.outputPath)
-                .toString("base64");
-            const response = {
-                message: "Obfuscation completed successfully!",
-                request_id: requestId,
-                status: job.status,
-                output_file: base64JarFile,
-            };
+        // Get queue position if job is still in queue
+        let jobQueueIndex = -1;
+        if (job.status === "pending" || job.status === "processing") {
+            jobQueueIndex = getJobQueueIndex("obfuscate", requestId);
+        }
 
-            // Cleanup after successful delivery
-            cleanupJob(requestId);
-
-            res.status(200).json(response);
-            return;
-        } else if (job.status === "failed") {
+        if (job.status === "failed") {
             const err = new Error(job.error || "Obfuscation failed");
             (err as any).status = 500;
             cleanupJob(requestId);
             return next(err);
         }
 
-        // Job is still processing
+        // Return job status and queue information
         res.status(200).json({
-            message: "Job is still processing",
+            message: job.status === "completed" ? "Job completed successfully" : "Job is still processing",
             request_id: requestId,
             status: job.status,
+            queue_index: jobQueueIndex,
+            total_queue_size: getQueueLength("obfuscate")
         });
+    }
+);
+
+// New endpoint for downloading the obfuscated jar
+router.get(
+    "/:requestId/download",
+    async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        const requestId = req.params.requestId;
+        const job = getJob(requestId);
+
+        if (!job) {
+            const err = new Error("Job not found");
+            (err as any).status = 404;
+            return next(err);
+        }
+
+        if (job.status !== "completed" || !job.outputPath || !fs.existsSync(job.outputPath)) {
+            const err = new Error("Obfuscated jar not available");
+            (err as any).status = 404;
+            return next(err);
+        }
+
+        try {
+            // Set appropriate headers for file download
+            res.setHeader('Content-Type', 'application/java-archive');
+            res.setHeader('Content-Disposition', `attachment; filename="${requestId}.jar"`);
+            
+            // Stream the file
+            const fileStream = fs.createReadStream(job.outputPath);
+            fileStream.pipe(res);
+
+            // Cleanup after streaming is complete
+            fileStream.on('end', () => {
+                cleanupJob(requestId);
+            });
+
+            fileStream.on('error', (error) => {
+                console.error(colors.red(`Error streaming file: ${error}`));
+                cleanupJob(requestId);
+                next(error);
+            });
+        } catch (error) {
+            console.error(colors.red(`Error handling download: ${error}`));
+            cleanupJob(requestId);
+            next(error);
+        }
     }
 );
 

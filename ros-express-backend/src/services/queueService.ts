@@ -10,7 +10,7 @@ interface QueueItem {
 }
 
 interface QueueAddResult {
-    position: number;  // 0-based position where the item was added
+    index: number;     // 0-based index where the item was added
     size: number;      // Total queue size at the time of addition
 }
 
@@ -40,7 +40,7 @@ class Queue {
         // Start processing if not already running
         this.startProcessing();
         
-        return { position, size };
+        return { index: position, size };
     }
 
     /**
@@ -111,6 +111,10 @@ class Queue {
     getQueueLength(): number {
         return this.items.length;
     }
+
+    getJobQueueIndex(jobId: string): number {
+        return this.items.findIndex(item => item.id === jobId);
+    }
 }
 
 // Create queues for each route type
@@ -135,4 +139,12 @@ export function getQueueLength(type: QueueType): number {
         throw new Error(`Invalid queue type: ${type}`);
     }
     return queue.getQueueLength();
+}
+
+export function getJobQueueIndex(type: QueueType, jobId: string): number {
+    const queue = queues.get(type);
+    if (!queue) {
+        throw new Error(`Invalid queue type: ${type}`);
+    }
+    return queue.getJobQueueIndex(jobId);
 } 
