@@ -76,7 +76,7 @@ router.post(
             );
 
             // Add job to queue and get its position and size
-            const queueResult = await addToQueue("obfuscate", {
+            const queueResult = addToQueue("obfuscate", {
                 id: requestID,
                 type: "obfuscate",
                 process: async () => {
