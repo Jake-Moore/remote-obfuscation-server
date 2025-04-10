@@ -1,13 +1,18 @@
 package io.github.jake_moore.ros_plugin.tasks;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import io.github.jake_moore.ros_plugin.ROSGradleConfig;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.SneakyThrows;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Input;
@@ -18,19 +23,15 @@ import org.gradle.api.tasks.TaskAction;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
 
-import io.github.jake_moore.ros_plugin.ROSGradleConfig;
 import static io.github.jake_moore.ros_plugin.ROSGradlePlugin.client;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.SneakyThrows;
-import okhttp3.MediaType;
-import okhttp3.MultipartBody;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
 
 @Setter @Getter
 public class ObfuscateJarTask extends DefaultTask {
@@ -150,13 +151,14 @@ public class ObfuscateJarTask extends DefaultTask {
             JsonObject jsonResponse = JsonParser.parseString(responseBody).getAsJsonObject();
             requestID = jsonResponse.get("request_id").getAsString();
             System.out.println("Obfuscation job started with ID: " + requestID);
-            @Nullable JsonElement queue_position = jsonResponse.get("queue_position");
+            @Nullable JsonElement queue_index = jsonResponse.get("queue_index");
             @Nullable JsonElement total_queue_size = jsonResponse.get("total_queue_size");
-            if (queue_position == null || total_queue_size == null) {
+            int queue_index_val = queue_index != null ? queue_index.getAsInt() : -1;
+            if (queue_index == null || queue_index_val < 0 || total_queue_size == null) {
                 System.out.println("No queue position information available.");
             } else {
                 // Print the queue position
-                System.out.println("Current queue position: " + queue_position.getAsInt() + "/" + total_queue_size.getAsInt());
+                System.out.println("Current queue position: " + (queue_index_val + 1) + "/" + total_queue_size.getAsInt());
             }
         }
 
@@ -195,7 +197,7 @@ public class ObfuscateJarTask extends DefaultTask {
 
                 if ("completed".equals(status)) {
                     // Log start of Jar copy
-                    System.out.println("\nObfuscation completed, writing JAR to: " + outputJar.getAbsolutePath());
+                    System.out.println("\tObfuscation completed, writing JAR to: " + outputJar.getAbsolutePath());
 
                     // If the file already exists, we should delete it
                     if (outputJar.exists()) {
@@ -206,16 +208,60 @@ public class ObfuscateJarTask extends DefaultTask {
                         }
                     }
 
-                    // Translate the base64-encoded JAR string back into a standard file at our desired location
-                    byte[] outputFileBytes = Base64.getDecoder().decode(jsonResponse.get("output_file").getAsString());
-                    Files.write(outputJar.toPath(), outputFileBytes);
+                    String DOWNLOAD_URL = REQUEST_URL + "/" + requestID + "/download";
 
-                    System.out.println("Obfuscated Jar written to: " + outputJar.getAbsolutePath());
-                    System.out.println("\tRequest ID: " + requestID);
+                    // Download the obfuscated JAR file
+                    try (Response downloadResponse = client.newCall(new Request.Builder()
+                            .url(DOWNLOAD_URL)
+                            .header("Authorization", "Bearer " + authToken)
+                            .get()
+                            .build()).execute()) {
+
+                        if (!downloadResponse.isSuccessful()) {
+                            throw new RuntimeException("Failed to download JAR: " + downloadResponse.code());
+                        }
+
+                        ResponseBody body = downloadResponse.body();
+
+                        // Get the content length for progress tracking
+                        long contentLength = body.contentLength();
+                        long bytesRead = 0;
+
+                        try (InputStream inputStream = body.byteStream();
+                             FileOutputStream outputStream = new FileOutputStream(outputJar)) {
+
+                            byte[] buffer = new byte[8192];
+                            int read;
+
+                            while ((read = inputStream.read(buffer)) != -1) {
+                                outputStream.write(buffer, 0, read);
+                                bytesRead += read;
+
+                                // Print progress if we know the total size
+                                if (contentLength > 0) {
+                                    double progress = (double) bytesRead / contentLength * 100;
+                                    System.out.printf("\tDownload progress: %.2f%%\n", progress);
+                                }
+                            }
+                        }
+
+                        System.out.println("Obfuscated Jar written to: " + outputJar.getAbsolutePath());
+                        System.out.println("\tRequest ID: " + requestID);
+                    }
                     return;
                 } else if ("failed".equals(status)) {
                     throw new RuntimeException("Obfuscation failed: " + jsonResponse.get("error").getAsString());
                 } else {
+                    // Log Queue Position Information
+                    @Nullable JsonElement queue_index = jsonResponse.get("queue_index");
+                    @Nullable JsonElement total_queue_size = jsonResponse.get("total_queue_size");
+                    int queue_index_val = queue_index != null ? queue_index.getAsInt() : -1;
+                    if (queue_index == null || queue_index_val < 0 || total_queue_size == null) {
+                        System.out.println("\tNo queue position information available.");
+                    } else {
+                        // Print the queue position
+                        System.out.println("\tCurrent queue position: " + (queue_index_val + 1) + "/" + total_queue_size.getAsInt());
+                    }
                     attempts++;
                 }
             }

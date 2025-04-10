@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "io.github.jake-moore"
-version = "1.0.8"
+version = "2.0.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -56,6 +56,7 @@ tasks {
 }
 
 // TO RELEASE: ./gradlew publishPlugins
+// TO TEST (publish @ luxious maven): ./gradlew publish
 publishing {
     repositories {
         maven {
