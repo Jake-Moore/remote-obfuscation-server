@@ -197,12 +197,12 @@ public class ObfuscateJarTask extends DefaultTask {
 
                 if ("completed".equals(status)) {
                     // Log start of Jar copy
-                    System.out.println("\tObfuscation completed, writing JAR to: " + outputJar.getAbsolutePath());
+                    System.out.println("\nObfuscation completed, writing JAR to: " + outputJar.getAbsolutePath());
 
                     // If the file already exists, we should delete it
                     if (outputJar.exists()) {
                         if (outputJar.delete()) {
-                            System.out.println("Deleted existing obfuscated JAR file: " + outputJar.getAbsolutePath());
+                            System.out.println("\tDeleted existing obfuscated JAR file: " + outputJar.getAbsolutePath());
                         } else {
                             throw new RuntimeException("Failed to delete existing obfuscated JAR file: " + outputJar.getAbsolutePath());
                         }
@@ -224,7 +224,6 @@ public class ObfuscateJarTask extends DefaultTask {
                         ResponseBody body = downloadResponse.body();
 
                         // Get the content length for progress tracking
-                        long contentLength = body.contentLength();
                         long bytesRead = 0;
 
                         try (InputStream inputStream = body.byteStream();
@@ -236,16 +235,10 @@ public class ObfuscateJarTask extends DefaultTask {
                             while ((read = inputStream.read(buffer)) != -1) {
                                 outputStream.write(buffer, 0, read);
                                 bytesRead += read;
-
-                                // Print progress if we know the total size
-                                if (contentLength > 0) {
-                                    double progress = (double) bytesRead / contentLength * 100;
-                                    System.out.printf("\tDownload progress: %.2f%%\n", progress);
-                                }
                             }
                         }
 
-                        System.out.println("Obfuscated Jar written to: " + outputJar.getAbsolutePath());
+                        System.out.println("\tObfuscated Jar written to: " + outputJar.getAbsolutePath());
                         System.out.println("\tRequest ID: " + requestID);
                     }
                     return;
