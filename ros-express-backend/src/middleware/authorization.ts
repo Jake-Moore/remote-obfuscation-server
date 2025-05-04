@@ -210,10 +210,27 @@ export async function getUserInfo(token: string): Promise<UserInfo> {
     }
 
     const username = userResponse.data.login;
-    const email = userResponse.data.email;
-    if (!email) {
-        throw new Error(`Error: Could not retrieve GitHub email for ${username}`);
+
+    // Fetch email from the emails endpoint
+    const response = await axios.get("https://api.github.com/user/emails", {
+        headers: {
+            Authorization: `token ${token}`,
+        },
+    });
+
+    // Validate the response data is a JSON array
+    if (!Array.isArray(response.data)) {
+        throw new Error(`Error: Malformed email response data`);
     }
+
+    // Find the primary email for this user
+    const primary = response.data.find(
+        (email: { primary: boolean; email: string }) => email.primary
+    );
+    if (!primary || !primary.email) {
+        throw new Error(`Error: No primary user email found`);
+    }
+    const email = primary.email;
 
     const userInfo: UserInfo = {
         email: email,
