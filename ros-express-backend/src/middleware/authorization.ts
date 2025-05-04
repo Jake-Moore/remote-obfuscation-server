@@ -4,8 +4,48 @@ import NodeCache from "node-cache";
 import { getRequiredGitOrgs } from "../services/envService.js";
 import { Request, Response, NextFunction } from "express";
 
+// Define a new interface for user information
+export interface UserInfo {
+    email: string;
+    username: string;
+}
+
+// Define a new interface for supplemental PATs
+export interface SupplementalPAT {
+    token: string;
+    nickname: string | null;
+}
+
 // Initialize cache with 1 minute TTL
 const cache = new NodeCache({ stdTTL: 60 });
+
+// Function to load supplemental PATs from environment variables
+function loadSupplementalPATs(): SupplementalPAT[] {
+    const supplementalPATsVal = process.env.ROS_SUPPLEMENTAL_PATS || "";
+    const stems = supplementalPATsVal
+        .split(",")
+        .map((stem) => stem.trim())
+        .filter((stem) => stem.length > 0);
+    
+    const pats: SupplementalPAT[] = [];
+    
+    for (const stem of stems) {
+        const patEnvVar = `ROS_SUPPLEMENTAL_${stem}`;
+        const patNameEnvVar = `ROS_SUPPLEMENTAL_${stem}_NAME`;
+        
+        const token = process.env[patEnvVar];
+        if (token) {
+            pats.push({
+                token,
+                nickname: process.env[patNameEnvVar] || null
+            });
+        } else {
+            console.log(colors.yellow(`[AUTH] Warning: Supplemental PAT environment variable ${patEnvVar} not found`));
+        }
+    }
+    
+    return pats;
+}
 
 export default async function validateAuthorization(
     req: Request,
@@ -36,17 +76,15 @@ export default async function validateAuthorization(
     // Use provided token to get user's Git organizations
     const token = req.headers.authorization.split(" ")[1];
 
-    // Fetch the Supplemental Allowed PATs
-    const supplementalPATsVal = process.env.ROS_SUPPLEMENTAL_PATS || "";
-    const supplementalPATs = supplementalPATsVal
-        .split(",")
-        .map((pat) => pat.trim())
-        .filter((pat) => pat.length > 0);
-    if (supplementalPATs.includes(token)) {
+    // Load supplemental PATs
+    const supplementalPATs = loadSupplementalPATs();
+    const matchedPAT = supplementalPATs.find(pat => pat.token === token);
+    
+    if (matchedPAT) {
         // The token is a supplemental PAT which is authorized immediately
         console.log(
             colors.green(
-                `[AUTH] Request authorized from ${req.ip} - Supplemental PAT`
+                `[AUTH] Request authorized from ${req.ip} - Supplemental PAT: ${matchedPAT.nickname || "unnamed"}`
             )
         );
         return next();
@@ -139,46 +177,56 @@ export default async function validateAuthorization(
     }
 }
 
-export async function getUserEmail(token: string): Promise<string> {
-    // Fetch the Supplemental Allowed PATs
-    const supplementalPATsVal = process.env.ROS_SUPPLEMENTAL_PATS || "";
-    const supplementalPATs = supplementalPATsVal
-        .split(",")
-        .map((pat) => pat.trim())
-        .filter((pat) => pat.length > 0);
-    if (supplementalPATs.includes(token)) {
-        // This token is authorized as a supplemental PAT
-        return "supplemental@ros.pat";
-    }
-
-    // Check cache first for email
-    const cacheKey = `email_${token}`;
-    const cachedEmail = cache.get<string>(cacheKey);
+export async function getUserInfo(token: string): Promise<UserInfo> {
+    // Check for supplemental PATs
+    const supplementalPATs = loadSupplementalPATs();
+    const matchedPAT = supplementalPATs.find(pat => pat.token === token);
     
-    if (cachedEmail) {
-        return cachedEmail;
+    if (matchedPAT) {
+        // This token is authorized as a supplemental PAT
+        return {
+            email: "supplemental@ros.pat",
+            username: matchedPAT.nickname || "supplemental-pat"
+        };
     }
 
-    const response = await axios.get("https://api.github.com/user/emails", {
+    // Check cache first for user info
+    const cacheKey = `userinfo_${token}`;
+    const cachedUserInfo = cache.get<UserInfo>(cacheKey);
+    
+    if (cachedUserInfo) {
+        return cachedUserInfo;
+    }
+
+    // Get username and email from GitHub API
+    const userResponse = await axios.get("https://api.github.com/user", {
         headers: {
             Authorization: `token ${token}`,
         },
     });
 
-    // Validate the response data is a JSON array
-    if (!Array.isArray(response.data)) {
-        throw new Error(`Error: Malformed email response data`);
+    if (!userResponse.data || !userResponse.data.login) {
+        throw new Error(`Error: Could not retrieve GitHub username`);
     }
 
-    // Find the primary email for this user
-    const primary = response.data.find(
-        (email: { primary: boolean; email: string }) => email.primary
-    );
-    if (!primary || !primary.email) {
-        throw new Error(`Error: No primary user email found`);
+    const username = userResponse.data.login;
+    const email = userResponse.data.email;
+    if (!email) {
+        throw new Error(`Error: Could not retrieve GitHub email for ${username}`);
     }
+
+    const userInfo: UserInfo = {
+        email: email,
+        username: username
+    };
 
     // Store in cache
-    cache.set(cacheKey, primary.email);
-    return primary.email;
+    cache.set(cacheKey, userInfo);
+    return userInfo;
+}
+
+export async function getUserEmail(token: string): Promise<string> {
+    // For backward compatibility, use the new getUserInfo method and return just the email
+    const userInfo = await getUserInfo(token);
+    return userInfo.email;
 }

@@ -8,7 +8,7 @@ import {
     getObfuscatorPathEnvVar,
 } from "../../envService.js";
 import deleteTemp from "../../ioService.js";
-import { getUserEmail } from "../../../middleware/authorization.js";
+import { getUserInfo, UserInfo } from "../../../middleware/authorization.js";
 import fs from "fs";
 import colors from "colors";
 import { exec } from "child_process";
@@ -62,9 +62,9 @@ export class AllatoriObfuscator extends Obfuscator {
         // Fetch the user email
         const authHeader = req.headers.authorization || "";
         const token = authHeader.split(" ")[1];
-        const userEmail = await getUserEmail(token);
-        if (!userEmail) {
-            const err = new Error("Failed to fetch user email.");
+        const userInfo = await getUserInfo(token);
+        if (!userInfo) {
+            const err = new Error("Failed to fetch user information.");
             (err as any).status = 500; // Internal Server Error
             console.log(colors.red(err.message));
             throw err;
@@ -87,7 +87,7 @@ export class AllatoriObfuscator extends Obfuscator {
             outputPath,
             logPath,
             requestID,
-            userEmail,
+            userInfo.email,
             this
         );
 
@@ -102,7 +102,7 @@ export class AllatoriObfuscator extends Obfuscator {
                 next,
                 outputPath,
                 requestID,
-                userEmail
+                userInfo
             );
 
             // Copy log file to storage
@@ -237,11 +237,15 @@ export class AllatoriObfuscator extends Obfuscator {
         next: NextFunction,
         jarPath: string,
         requestID: string,
-        userEmail: string
+        userInfo: UserInfo
     ): Promise<void> {
         try {
             const zip = new AdmZip(jarPath);
-            const obfData = { request_id: requestID, request_user: userEmail };
+            const obfData = {
+                request_id: requestID,
+                request_user: userInfo.email,
+                request_username: userInfo.username
+            };
             zip.addFile(
                 this.watermarkFileName,
                 Buffer.from(JSON.stringify(obfData))

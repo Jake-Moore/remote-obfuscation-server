@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { UserInfo } from "../../middleware/authorization.js";
 
 export class Obfuscator {
     async obfuscate(
@@ -28,7 +29,7 @@ export class Obfuscator {
         _next: NextFunction,
         _jarPath: string,
         _requestID: string,
-        _userEmail: string
+        _userInfo: UserInfo
     ): Promise<any | void> {
         throw new Error("Method 'injectWatermark()' is not implemented.");
     }
