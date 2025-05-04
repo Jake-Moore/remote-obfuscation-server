@@ -24,7 +24,8 @@ export class AllatoriObfuscator extends Obfuscator {
         next: NextFunction,
         jarFile: Express.Multer.File,
         configFile: Express.Multer.File,
-        requestID: string
+        requestID: string,
+        requestedBy?: string
     ): Promise<void> {
         // Validate file extensions
         if (path.extname(jarFile.originalname) !== ".jar") {
@@ -102,7 +103,8 @@ export class AllatoriObfuscator extends Obfuscator {
                 next,
                 outputPath,
                 requestID,
-                userInfo
+                userInfo,
+                requestedBy
             );
 
             // Copy log file to storage
@@ -237,15 +239,22 @@ export class AllatoriObfuscator extends Obfuscator {
         next: NextFunction,
         jarPath: string,
         requestID: string,
-        userInfo: UserInfo
+        userInfo: UserInfo,
+        requestedBy?: string
     ): Promise<void> {
         try {
             const zip = new AdmZip(jarPath);
-            const obfData = {
+            const obfData: Record<string, string> = {
                 request_id: requestID,
                 request_user: userInfo.email,
                 request_username: userInfo.username
             };
+            
+            // Add requested_by field only if it was provided
+            if (requestedBy) {
+                obfData.requested_by = requestedBy;
+            }
+            
             zip.addFile(
                 this.watermarkFileName,
                 Buffer.from(JSON.stringify(obfData))

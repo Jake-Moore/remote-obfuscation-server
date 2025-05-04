@@ -27,6 +27,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
@@ -119,6 +121,15 @@ public class ObfuscateJarTask extends DefaultTask {
             uploadFile = tempJarFile;
         }
 
+        // Get the username you want to include (e.g., from environment or system properties)
+        @Nullable String githubUser = System.getenv("GITHUB_ACTOR");
+
+        // Create the URL with the query parameter
+        @NotNull String obfuscateJarURL = REQUEST_URL;
+        if (githubUser != null && !githubUser.isEmpty()) {
+            obfuscateJarURL += "?requested_by=" + URLEncoder.encode(githubUser, StandardCharsets.UTF_8);
+        }
+
         // Create multipart request body
         RequestBody requestBody = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
@@ -137,7 +148,7 @@ public class ObfuscateJarTask extends DefaultTask {
         String requestID;
         // Initial request to start obfuscation
         try (Response response = client.newCall(new Request.Builder()
-                .url(REQUEST_URL)
+                .url(obfuscateJarURL)
                 .header("Authorization", "Bearer " + authToken)
                 .post(requestBody)
                 .build()).execute()) {

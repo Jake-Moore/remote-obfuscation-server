@@ -8,7 +8,8 @@ export class Obfuscator {
         _next: NextFunction,
         _jarFile: Express.Multer.File,
         _configFile: Express.Multer.File,
-        _requestID: string
+        _requestID: string,
+        _requestedBy?: string
     ): Promise<any | void> {
         throw new Error("Method 'obfuscate()' is not implemented.");
     }
@@ -29,7 +30,8 @@ export class Obfuscator {
         _next: NextFunction,
         _jarPath: string,
         _requestID: string,
-        _userInfo: UserInfo
+        _userInfo: UserInfo,
+        _requestedBy?: string
     ): Promise<any | void> {
         throw new Error("Method 'injectWatermark()' is not implemented.");
     }

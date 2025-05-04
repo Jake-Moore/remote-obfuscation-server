@@ -45,6 +45,9 @@ router.post(
         // Parse files from request
         const jarFile = files.jar[0];
         const configFile = files.config[0];
+        
+        // Extract requested_by parameter from query params if it exists
+        const requestedBy = req.query.requested_by as string | undefined;
 
         // Obtain an obfuscator instance
         const obfuscator: Obfuscator = getObfuscator();
@@ -88,7 +91,8 @@ router.post(
                             next,
                             jarFile,
                             configFile,
-                            requestID
+                            requestID,
+                            requestedBy
                         );
                         updateJobStatus(requestID, "completed");
                     } catch (error) {
